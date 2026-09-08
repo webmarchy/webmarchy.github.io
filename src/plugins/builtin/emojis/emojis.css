@@ -1,0 +1,107 @@
+/* Sized in rem (root font = --font-size-base, values are px-at-12 ÷ 12),
+   so the Display panel's TEXT SIZE scales the picker with the shell. */
+
+/* Menu-styled, like upstream sharing the [menu] surface tokens. */
+.emojis {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+    font-family: var(--font-mono);
+}
+
+/* Upstream's space(400) × space(500) card, centered. */
+.emojis-card {
+    width: 33.3333rem;
+    max-width: calc(var(--viewport-w) - 16px);
+    height: 41.6667rem;
+    max-height: calc(var(--viewport-h) - 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6667rem;
+    padding: 1.5rem;
+    background: var(--color-background);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+}
+
+.emojis-header {
+    flex: none;
+    height: 2.8333rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.3333rem;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.emojis-header-placeholder {
+    opacity: 0.58;
+}
+
+/* Fixed 44px cells; leftover width stays at the right edge, like
+   upstream's GridView. */
+.emojis-grid {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 3.6667rem);
+    grid-auto-rows: 3.6667rem;
+    align-content: start;
+}
+
+.emojis-grid:empty {
+    display: none;
+}
+
+.emojis-cell {
+    width: 3.6667rem;
+    height: 3.6667rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 2.3333rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.emojis-cell-selected {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+}
+
+/* ---- No matches ---------------------------------------------------- */
+
+.emojis-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6667rem;
+    text-align: center;
+}
+
+.emojis-empty-glyph {
+    font-size: 2.8333rem;
+    line-height: 1;
+    color: var(--color-accent);
+    opacity: 0.8;
+}
+
+.emojis-empty-text {
+    font-size: 1.25rem;
+    color: var(--color-foreground);
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}

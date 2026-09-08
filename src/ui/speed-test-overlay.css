@@ -1,0 +1,190 @@
+/* The shared gauge-cluster overlay (ui/SpeedTestOverlay.js). The scrim
+   is a fixed near-black on any theme, so everything on it uses a fixed
+   light palette; only the value arcs and needles take the accent.
+   Sized in rem (px-at-12 ÷ 12) so TEXT SIZE scales the cluster. */
+
+.speedtest-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 240;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.78);
+    font-family: var(--font-mono);
+}
+
+.speedtest-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.3333rem;
+    max-width: calc(var(--viewport-w) - 32px);
+}
+
+.speedtest-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1667rem;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+}
+
+.speedtest-dials {
+    display: flex;
+    gap: 4rem;
+}
+
+/* ---- One dial: 210px square at the 12px base. ---------------------- */
+
+.speedtest-dial {
+    position: relative;
+    width: 17.5rem;
+    height: 17.5rem;
+    opacity: 0.5;
+    transition: opacity 240ms ease-out;
+}
+
+.speedtest-dial-engaged {
+    opacity: 1;
+}
+
+.speedtest-dial-arcs {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.speedtest-dial-arcs circle {
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke-dasharray 600ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.speedtest-arc-track {
+    stroke: rgba(255, 255, 255, 0.14);
+}
+
+/* Soft under-glow beneath the value arc — the backlit ring. */
+.speedtest-arc-glow {
+    stroke: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.speedtest-arc-value {
+    stroke: var(--color-accent);
+}
+
+/* Round caps would leave a stray dot at the foot of the scale when the
+   arc is at rest. */
+.speedtest-arc-hidden {
+    stroke: transparent;
+}
+
+/* ---- Tick ring, every fifth a major. ------------------------------- */
+
+.speedtest-tick-holder,
+.speedtest-needle-holder {
+    position: absolute;
+    inset: 0;
+    transition: transform 600ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.speedtest-tick,
+.speedtest-tick-major {
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
+    border-radius: 1px;
+}
+
+.speedtest-tick {
+    top: 0.8333rem;
+    width: 1px;
+    height: 0.5rem;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.speedtest-tick-major {
+    top: 0.6667rem;
+    width: 2px;
+    height: 0.8333rem;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- Hubless needle: fades toward the pivot. ----------------------- */
+
+.speedtest-needle {
+    position: absolute;
+    left: 50%;
+    top: 1.5rem;
+    translate: -50% 0;
+    width: 0.25rem;
+    height: 5.6rem;
+    border-radius: 0.125rem;
+    background: linear-gradient(to bottom,
+        var(--color-accent) 0%, var(--color-accent) 55%, transparent 100%);
+}
+
+/* ---- Digital readout in the middle. -------------------------------- */
+
+.speedtest-readout {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% 1.1667rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.speedtest-readout-value {
+    font-size: 2.3333rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.1;
+}
+
+.speedtest-readout-unit {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* The 90° gap at the bottom of the scale names the direction. */
+.speedtest-dial-label {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.125rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* ---- Run again / error --------------------------------------------- */
+
+.speedtest-run {
+    padding: 0.3333rem 1.1667rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius);
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 0.8333rem;
+    color: white;
+    cursor: pointer;
+    transition: opacity 240ms ease-out;
+}
+
+.speedtest-run-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.speedtest-error {
+    max-width: 36.6667rem;
+    font-size: 0.8333rem;
+    color: #ff6b6b;
+    text-align: center;
+    overflow-wrap: anywhere;
+}

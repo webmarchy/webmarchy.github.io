@@ -1,0 +1,61 @@
+.lock {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lock-wallpaper {
+    position: absolute;
+    inset: -64px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(48px);
+}
+
+.lock-wash {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-background) 80%, transparent);
+}
+
+.lock-form {
+    position: relative;
+}
+
+.lock-input {
+    width: 26.6667rem;
+    height: 4.3333rem;
+    padding: 0 1.3333rem;
+    text-align: center;
+    background: color-mix(in srgb, var(--color-background) 60%, transparent);
+    color: var(--color-foreground);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 1.1667rem;
+    letter-spacing: 0.2857em;
+    outline: none;
+}
+
+.lock-input:focus {
+    border-color: var(--color-accent);
+}
+
+.lock-input::placeholder {
+    color: var(--color-foreground);
+    opacity: 0.66;
+    letter-spacing: normal;
+}
+
+.lock-input-shake {
+    animation: lock-shake 0.3s ease;
+}
+
+@keyframes lock-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}

@@ -1,0 +1,61 @@
+/* Sized in rem (root font = --font-size-base), like all shell chrome. */
+
+/* Alacritty's look: a translucent theme-background pane, nothing but
+   text — the wallpaper ghosts through, as in the reference. */
+.terminal {
+    position: relative;
+    height: 100%;
+    background: color-mix(in srgb, var(--color-background) 92%, transparent);
+}
+
+.terminal-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.3333rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-foreground);
+}
+
+.terminal-line {
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 1.5em;
+}
+
+.terminal-path {
+    color: var(--color-cyan);
+}
+
+.terminal-marker {
+    color: var(--color-cyan);
+}
+
+.terminal-marker-failed {
+    color: var(--color-red);
+}
+
+/* Steady block cursor (Alacritty's default doesn't blink), hollow
+   when the terminal loses the keyboard — like the real thing. */
+.terminal-cursor {
+    display: inline-block;
+    min-width: 0.6em;
+    background: var(--color-foreground);
+    color: var(--color-background);
+}
+
+.terminal-unfocused .terminal-cursor {
+    background: transparent;
+    color: var(--color-foreground);
+    box-shadow: inset 0 0 0 1px var(--color-foreground);
+}
+
+/* The hidden key sink the line editor lives in. */
+.terminal-key-sink {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    border: none;
+    pointer-events: none;
+}

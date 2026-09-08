@@ -1,0 +1,139 @@
+.menu-bar-widget {
+    height: 100%;
+    padding: 0 0.625rem;
+    border: none;
+    background: none;
+    font-family: 'omarchy';
+    font-size: 1rem;
+    color: var(--color-foreground);
+    cursor: pointer;
+}
+
+.bar[data-position="left"] .menu-bar-widget,
+.bar[data-position="right"] .menu-bar-widget {
+    height: auto;
+    width: 100%;
+    padding: 0.625rem 0;
+}
+
+.menu {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: calc(var(--viewport-h) * 0.1);
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+}
+
+.menu-card {
+    width: 25rem;
+    max-height: calc(var(--viewport-h) * 0.9 - 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    background: var(--color-background);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+}
+
+.menu-header {
+    flex: none;
+    height: 2.8333rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.3333rem;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menu-header-placeholder {
+    opacity: 0.58;
+}
+
+.menu-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.menu-row {
+    display: flex;
+    align-items: center;
+    min-height: 4.1667rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.menu-row:has(.menu-row-detail) {
+    min-height: 4.8333rem;
+}
+
+.menu-row-selected {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+}
+
+.menu-row-icon {
+    flex: none;
+    width: 3rem;
+    margin-left: 0.6667rem;
+    text-align: center;
+    font-size: 1.5rem;
+    color: var(--color-foreground);
+}
+
+.menu-row-selected .menu-row-icon {
+    color: var(--color-accent);
+}
+
+.menu-row-body {
+    flex: 1;
+    min-width: 0;
+    margin: 0 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.menu-row-label {
+    font-size: 1.3333rem;
+    font-weight: 500;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menu-row-selected .menu-row-label {
+    color: var(--color-accent);
+}
+
+.menu-row-detail {
+    font-size: 0.9167rem;
+    color: var(--color-foreground);
+    opacity: 0.52;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menu-row-trailing {
+    flex: none;
+    width: 1.1667rem;
+    margin-right: 0.6667rem;
+    font-size: 1.3333rem;
+    color: var(--color-foreground);
+    opacity: 0.36;
+}
+
+.menu-row-selected .menu-row-trailing {
+    color: var(--color-accent);
+}

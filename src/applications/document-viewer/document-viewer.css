@@ -1,0 +1,154 @@
+/* Sized in rem (root font = --font-size-base), like all shell chrome. */
+
+.document-viewer {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-darker-background);
+}
+
+/* The browser's built-in PDF renderer draws the pages; the theme owns
+   everything around it. */
+.document-viewer-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* <object> fallback content, shown only where PDFs can't render inline. */
+.document-viewer-fallback {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--color-dark-foreground);
+}
+
+.document-viewer-fallback p {
+    margin: 0;
+}
+
+.document-viewer-fallback-icon {
+    font-size: 4rem;
+    color: var(--color-muted);
+}
+
+.document-viewer-fallback-text {
+    color: var(--color-foreground);
+}
+
+.document-viewer-fallback-link {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.8333rem;
+    color: var(--color-accent);
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius);
+    text-decoration: none;
+}
+
+.document-viewer-fallback-link:hover {
+    background: var(--color-selection);
+    color: var(--color-bright-foreground);
+}
+
+/* Empty state: the way in. A visible button, with drag-drop and `o`
+   as the faster paths once known. */
+.document-viewer-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--color-dark-foreground);
+}
+
+.document-viewer-empty p {
+    margin: 0;
+}
+
+.document-viewer-empty-icon {
+    font-size: 4rem;
+    color: var(--color-muted);
+}
+
+.document-viewer-empty-text {
+    color: var(--color-foreground);
+}
+
+.document-viewer-open {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.3333rem;
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius);
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.document-viewer-open:hover {
+    background: var(--color-selection);
+    color: var(--color-bright-foreground);
+}
+
+.document-viewer-empty-hint {
+    font-size: 0.9167rem;
+}
+
+/* The info strip: filename left, position right — like the image
+   viewer's imv overlay. */
+.document-viewer-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3333rem 0.8333rem;
+    background: color-mix(in srgb, var(--color-background) 80%, transparent);
+    color: var(--color-foreground);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.document-viewer-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.document-viewer-meta {
+    flex: none;
+    margin-left: auto;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+}
+
+/* The one clickable thing on the otherwise inert overlay strip. */
+.document-viewer-overlay-open {
+    flex: none;
+    padding: 0 0.3333rem;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1.1667rem;
+    color: var(--color-foreground);
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.document-viewer-overlay-open:hover {
+    color: var(--color-accent);
+}

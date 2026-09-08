@@ -1,0 +1,172 @@
+/* Sized in rem (root font = --font-size-base), like all shell chrome. */
+
+.media-player {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-darker-background);
+}
+
+.media-player-stage {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+}
+
+.media-player-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Audio-only tracks: a themed face instead of a black video void. */
+.media-player-audio {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--color-darker-background);
+    pointer-events: none;
+}
+
+.media-player-audio p {
+    margin: 0;
+}
+
+.media-player-audio-icon {
+    font-size: 5rem;
+    color: var(--color-accent);
+}
+
+.media-player-audio-title {
+    max-width: 100%;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Empty state: the way in. A visible button, with drag-drop and `o`
+   as the faster paths once known. */
+.media-player-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--color-dark-foreground);
+}
+
+.media-player-empty p {
+    margin: 0;
+}
+
+.media-player-empty-icon {
+    font-size: 4rem;
+    color: var(--color-muted);
+}
+
+.media-player-empty-text {
+    color: var(--color-foreground);
+}
+
+.media-player-open {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.3333rem;
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius);
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.media-player-open:hover {
+    background: var(--color-selection);
+    color: var(--color-bright-foreground);
+}
+
+.media-player-empty-hint {
+    font-size: 0.9167rem;
+}
+
+/* The mpv-style OSD: seek rail over a title/time strip, fading out
+   after a still moment during playback (.media-player-idle). */
+.media-player-osd {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: color-mix(in srgb, var(--color-background) 80%, transparent);
+    transition: opacity 0.3s;
+}
+
+.media-player-idle .media-player-osd {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.media-player-idle .media-player-stage {
+    cursor: none;
+}
+
+.media-player-rail {
+    height: 0.3333rem;
+    background: var(--color-selection);
+    cursor: pointer;
+}
+
+.media-player-rail-fill {
+    height: 100%;
+    width: 0;
+    background: var(--color-accent);
+}
+
+.media-player-osd-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6667rem;
+    padding: 0.3333rem 0.8333rem;
+    color: var(--color-foreground);
+    font-size: 1rem;
+}
+
+.media-player-toggle,
+.media-player-osd-open {
+    flex: none;
+    padding: 0 0.3333rem;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1.1667rem;
+    color: var(--color-foreground);
+    cursor: pointer;
+}
+
+.media-player-toggle:hover,
+.media-player-osd-open:hover {
+    color: var(--color-accent);
+}
+
+.media-player-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-player-meta {
+    flex: none;
+    margin-left: auto;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+}

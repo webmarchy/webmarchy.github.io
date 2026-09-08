@@ -1,0 +1,127 @@
+/* Sized in rem (root font = --font-size-base), like all shell chrome. */
+
+.image-viewer {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-darker-background);
+}
+
+.image-viewer-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+/* Centered at natural size; zoom, rotation, and pan are all one
+   transform applied on top of the centering translate. */
+.image-viewer-image {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    max-width: none;
+}
+
+.image-viewer-pannable .image-viewer-stage {
+    cursor: grab;
+}
+
+.image-viewer-pannable .image-viewer-stage:active {
+    cursor: grabbing;
+}
+
+/* Empty state: the way in. A visible button, with drag-drop and `o`
+   as the faster paths once known. */
+.image-viewer-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--color-dark-foreground);
+}
+
+.image-viewer-empty p {
+    margin: 0;
+}
+
+.image-viewer-empty-icon {
+    font-size: 4rem;
+    color: var(--color-muted);
+}
+
+.image-viewer-empty-text {
+    color: var(--color-foreground);
+}
+
+.image-viewer-open {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.3333rem;
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius);
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.image-viewer-open:hover {
+    background: var(--color-selection);
+    color: var(--color-bright-foreground);
+}
+
+.image-viewer-empty-hint {
+    font-size: 0.9167rem;
+}
+
+/* The imv-style info strip: filename left, position/size/zoom right. */
+.image-viewer-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3333rem 0.8333rem;
+    background: color-mix(in srgb, var(--color-background) 80%, transparent);
+    color: var(--color-foreground);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.image-viewer-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.image-viewer-meta {
+    flex: none;
+    margin-left: auto;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+}
+
+/* The one clickable thing on the otherwise inert overlay strip. */
+.image-viewer-overlay-open {
+    flex: none;
+    padding: 0 0.3333rem;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1.1667rem;
+    color: var(--color-foreground);
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.image-viewer-overlay-open:hover {
+    color: var(--color-accent);
+}

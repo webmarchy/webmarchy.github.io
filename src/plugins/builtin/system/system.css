@@ -1,0 +1,124 @@
+.system-black {
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    background: #000;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.system-black-opaque {
+    opacity: 1;
+}
+
+.system-power-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--viewport-h) * 0.12);
+    margin: 0;
+    text-align: center;
+    font-size: 1.0833rem;
+    color: #444;
+    animation: system-hint-in 1s ease;
+}
+
+@keyframes system-hint-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.system-login {
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-darker-background);
+}
+
+.system-login-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.3333rem;
+}
+
+.system-login-user {
+    margin: 0;
+    font-size: 1.3333rem;
+    color: var(--color-bright-foreground);
+}
+
+.system-login-input {
+    width: 26.6667rem;
+    height: 4.3333rem;
+    padding: 0 1.3333rem;
+    text-align: center;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 1.1667rem;
+    letter-spacing: 0.2857em;
+    outline: none;
+}
+
+.system-login-input:focus {
+    border-color: var(--color-accent);
+}
+
+.system-login-input::placeholder {
+    color: var(--color-foreground);
+    opacity: 0.66;
+    letter-spacing: normal;
+}
+
+.system-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3.3333rem;
+    background: var(--color-background);
+    transition: opacity 0.5s ease;
+}
+
+.system-splash-fading {
+    opacity: 0;
+}
+
+.system-splash-logo {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8333rem;
+    line-height: 1.2;
+    color: var(--color-foreground);
+}
+
+.system-splash-track {
+    width: 25rem;
+    height: 0.8333rem;
+    background: var(--color-selection);
+}
+
+.system-splash-fill {
+    width: 0;
+    height: 100%;
+    background: var(--color-foreground);
+    transition: width 1s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.system-splash-fill-boot {
+    width: 70%;
+}
+
+.system-splash-fill-done {
+    width: 100%;
+    transition-duration: 0.3s;
+}

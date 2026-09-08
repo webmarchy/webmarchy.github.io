@@ -1,0 +1,60 @@
+.image-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 250;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+}
+
+.image-picker-track {
+    position: absolute;
+    inset: 0;
+}
+
+/* Unselected: a 108x432 film-strip slice skewed into a parallelogram —
+   upstream's skewOffset 28 over sliceHeight 432 = atan(28/432) ≈ 3.7°.
+   skewX keeps the CSS border on the slanted box like upstream's
+   stroked ShapePath; the ::after wash is dimColor at 0.42 alpha. */
+.image-picker-slide {
+    position: absolute;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 28%, transparent);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transform: skewX(-3.7deg);
+    transition: left 0.25s ease, top 0.25s ease, width 0.25s ease,
+        height 0.25s ease, transform 0.25s ease;
+}
+
+.image-picker-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-background) 42%, transparent);
+    transition: background 0.25s ease;
+}
+
+/* Selected: the flat 768x475 preview, 3px accent border, no skew, no
+   dim wash. */
+.image-picker-slide-selected {
+    border: 3px solid var(--color-accent);
+    transform: none;
+}
+
+.image-picker-slide-selected::after {
+    background: transparent;
+}
+
+.image-picker-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0;
+    text-align: center;
+    font-size: 2.3333rem;
+    font-weight: 500;
+    color: var(--color-bright-foreground);
+    text-shadow: 0 2px 8px var(--color-darker-background);
+    pointer-events: none;
+}

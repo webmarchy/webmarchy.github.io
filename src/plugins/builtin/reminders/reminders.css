@@ -1,0 +1,40 @@
+/* Sized in rem (root font = --font-size-base, values are px-at-12 ÷ 12),
+   so the Display panel's TEXT SIZE scales the flow with the shell. */
+
+/* ---- Capture flow: a one-row menu-styled card, centered over a scrim
+   (upstream draws it with the menu's own colors and border). */
+
+.reminders {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+    font-family: var(--font-mono);
+}
+
+.reminders-card {
+    width: 25rem;
+    max-width: calc(var(--viewport-w) - 16px);
+    padding: 1.5rem;
+    background: var(--color-background);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+}
+
+.reminders-prompt {
+    height: 2.8333rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.3333rem;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reminders-prompt-placeholder {
+    opacity: 0.58;
+}

@@ -1,0 +1,194 @@
+.clipboard {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+    font-family: var(--font-mono);
+}
+
+.clipboard-card {
+    width: 72.9167rem;
+    max-width: calc(var(--viewport-w) - 16px);
+    height: 50rem;
+    max-height: calc(var(--viewport-h) - 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6667rem;
+    padding: 1.5rem;
+    background: var(--color-background);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+    position: relative;
+}
+
+.clipboard-header {
+    flex: none;
+    height: 2.8333rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.3333rem;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.clipboard-header-placeholder {
+    opacity: 0.58;
+}
+
+.clipboard-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    position: relative;
+}
+
+.clipboard-list {
+    width: 50%;
+    padding-right: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3333rem;
+}
+
+.clipboard-row {
+    flex: none;
+    height: 4.1667rem;
+    padding: 0.6667rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8333rem;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    text-align: left;
+    cursor: pointer;
+}
+
+.clipboard-row-selected {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+}
+
+.clipboard-row-thumb {
+    flex: none;
+    height: 100%;
+    object-fit: contain;
+}
+
+.clipboard-row-text {
+    min-width: 0;
+    font-size: 1.25rem;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.clipboard-row-selected .clipboard-row-text {
+    color: var(--color-accent);
+}
+
+.clipboard-row-text-muted {
+    opacity: 0.72;
+}
+
+.clipboard-pane {
+    width: 50%;
+    padding-left: 1.5rem;
+    border-left: 1px solid color-mix(in srgb, var(--color-foreground) 28%, transparent);
+    overflow: hidden;
+}
+
+.clipboard-pane-text {
+    max-height: 100%;
+    font-size: 1.25rem;
+    color: var(--color-foreground);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+}
+
+.clipboard-pane-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.clipboard-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6667rem;
+    text-align: center;
+}
+
+.clipboard-empty-glyph {
+    font-size: 2.8333rem;
+    line-height: 1;
+    color: var(--color-accent);
+    opacity: 0.8;
+}
+
+.clipboard-empty-text {
+    font-size: 1.25rem;
+    color: var(--color-foreground);
+    opacity: 0.7;
+}
+
+.clipboard-confirm {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+    border-radius: var(--radius);
+}
+
+.clipboard-confirm-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1667rem;
+    padding: 1.5rem;
+    background: var(--color-background);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+}
+
+.clipboard-confirm-message {
+    font-size: 1.25rem;
+    color: var(--color-foreground);
+}
+
+.clipboard-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.clipboard-confirm-button {
+    padding: 0.4167rem 1.1667rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 25%, transparent);
+    background: none;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--color-foreground);
+    cursor: pointer;
+}
+
+.clipboard-confirm-selected {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}

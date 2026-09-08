@@ -1,0 +1,306 @@
+/* Sized in rem throughout (root font = --font-size-base, values are
+   px-at-12 ÷ 12), so the Display panel's TEXT SIZE scales the whole
+   surface, not just its type. Hairlines stay px. */
+
+.weather {
+    display: contents;
+}
+
+/* Slot metrics come from the shared .bar-icon-button /
+   .bar-status-button classes in bar.css. */
+
+.weather-bar-widget[aria-expanded="true"] {
+    text-decoration: underline;
+    text-underline-offset: 0.3333rem;
+}
+
+/* ---- Weather panel ------------------------------------------------ */
+
+/* Centered on the bar, like upstream's centerOnBar KeyboardPanel;
+   contentWidth Style.space(480). */
+.weather-panel {
+    position: fixed;
+    z-index: 150;
+    width: 40rem;
+    max-width: calc(var(--viewport-w) - 16px);
+    /* Never taller than the space beside the bar — the panel scrolls
+       inside instead of running off screen (upstream wraps the content
+       in a Flickable for the same reason). */
+    max-height: calc(var(--viewport-h) - var(--bar-height) - 10px);
+    overflow-y: auto;
+    padding: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1667rem;
+    background: var(--color-background);
+    border: var(--border-width) solid var(--color-accent);
+    border-radius: var(--radius);
+    color: var(--color-foreground);
+    font-family: var(--font-mono);
+}
+
+.weather-panel > * {
+    flex: none;
+}
+
+html[data-bar-position="left"] .weather-panel,
+html[data-bar-position="right"] .weather-panel {
+    max-height: calc(var(--viewport-h) - 10px);
+}
+
+html[data-bar-position="top"] .weather-panel {
+    top: calc(var(--bar-height) + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+html[data-bar-position="bottom"] .weather-panel {
+    bottom: calc(var(--bar-height) + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+html[data-bar-position="left"] .weather-panel {
+    left: calc(var(--bar-size-vertical) + 5px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+html[data-bar-position="right"] .weather-panel {
+    right: calc(var(--bar-size-vertical) + 5px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* ---- Hero: big icon + temperature left, location and stats right. */
+
+.weather-hero {
+    padding: 0 1.6667rem 0 1.3333rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.3333rem;
+}
+
+.weather-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 1.3333rem;
+}
+
+/* Decorative condition glyph; intentionally larger than the type
+   scale, matching upstream's oversized hero (64/56px at the 12px base). */
+.weather-hero-icon {
+    font-size: 5.3333rem;
+    line-height: 1;
+}
+
+.weather-hero-temp {
+    font-size: 4.6667rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.weather-hero-unit {
+    align-self: flex-start;
+    margin-top: 0.8333rem;
+    font-size: 2.3333rem;
+    line-height: 1;
+}
+
+.weather-hero-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+/* ---- Location: a quiet label that is also the way to change it. */
+
+.weather-location {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    letter-spacing: 0.0833rem;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+    cursor: pointer;
+}
+
+.weather-location:hover {
+    color: var(--color-accent);
+}
+
+.weather-location-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.weather-input {
+    width: 15.8333rem;
+    padding: 0.1667rem 0.5rem;
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 25%, transparent);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--color-foreground);
+}
+
+.weather-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+/* Clear back to IP auto-detect; while a committed location is loading,
+   this same compact affordance becomes a spinner. */
+.weather-location-clear {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 0.8333rem;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+    cursor: pointer;
+}
+
+.weather-location-clear:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+    color: var(--color-accent);
+}
+
+.weather-location-clear.weather-saving {
+    cursor: default;
+    animation: weather-spin 800ms linear infinite;
+}
+
+@keyframes weather-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---- FEELS / WIND / HUMID read-outs. */
+
+.weather-stats {
+    display: flex;
+    gap: 3rem;
+}
+
+.weather-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4167rem;
+}
+
+.weather-stat-label {
+    font-size: 0.8333rem;
+    letter-spacing: 0.0833rem;
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+}
+
+.weather-stat-value {
+    font-size: 1.25rem;
+}
+
+/* ---- Geocoding suggestions while the location is being edited. */
+
+.weather-suggestions {
+    display: flex;
+    flex-direction: column;
+}
+
+.weather-suggestion {
+    padding: 0.5rem 1.3333rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6667rem;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    text-align: left;
+    color: var(--color-foreground);
+    cursor: pointer;
+}
+
+.weather-suggestion-selected {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+}
+
+.weather-suggestion-selected .weather-suggestion-name {
+    color: var(--color-accent);
+}
+
+.weather-suggestion-name {
+    font-size: 1rem;
+}
+
+.weather-suggestion-region {
+    font-size: 0.8333rem;
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+}
+
+.weather-fetching {
+    padding: 0 1.3333rem;
+    font-size: 0.8333rem;
+    font-style: italic;
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+}
+
+/* ---- Divider between current conditions and forecast. */
+
+.weather-separator {
+    height: 1px;
+    background: color-mix(in srgb, var(--color-foreground) 12%, transparent);
+}
+
+/* ---- Forecast row: day icon left of a day-name + hi/lo column. */
+
+.weather-forecast {
+    display: flex;
+    justify-content: center;
+    gap: 3.6667rem;
+}
+
+.weather-day {
+    display: flex;
+    align-items: center;
+    gap: 0.8333rem;
+}
+
+.weather-day-icon {
+    font-size: 2.3333rem;
+    line-height: 1;
+}
+
+.weather-day-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1667rem;
+}
+
+.weather-day-name {
+    font-size: 0.75rem;
+    letter-spacing: 0.0833rem;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+}
+
+.weather-day-temps {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 1rem;
+}
+
+.weather-day-min {
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+}

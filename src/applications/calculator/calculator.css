@@ -1,0 +1,97 @@
+.calculator {
+    height: 100%;
+    overflow-y: auto;
+    background: var(--color-darker-background);
+    color: var(--color-foreground);
+}
+
+.calculator-face {
+    display: flex;
+    flex-direction: column;
+    max-width: 40rem;
+    height: 100%;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.calculator-display {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 3rem;
+    padding-top: 2.5rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+}
+
+.calculator-expression {
+    padding-left: 0.85rem;
+    font-size: 1.8rem;
+    letter-spacing: 0.1em;
+    color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calculator-result {
+    font-size: 6.5rem;
+    font-weight: 300;
+    line-height: 1;
+    text-align: right;
+    color: var(--color-bright-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.calculator-result-long {
+    font-size: 3.5rem;
+}
+
+.calculator-keypad {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.3333rem;
+    padding-top: 2.3333rem;
+}
+
+.calculator-key {
+    height: 6rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 8%, transparent);
+    border-radius: 0.7rem;
+    background: var(--color-background);
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    color: var(--color-foreground);
+    cursor: pointer;
+}
+
+.calculator-key:hover {
+    background: color-mix(in srgb, var(--color-foreground) 8%, var(--color-background));
+}
+
+.calculator-key:active {
+    background: color-mix(in srgb, var(--color-foreground) 16%, var(--color-background));
+}
+
+.calculator-key-op {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--color-foreground) 12%, var(--color-background));
+}
+
+.calculator-key-op:hover {
+    background: color-mix(in srgb, var(--color-foreground) 20%, var(--color-background));
+}
+
+.calculator-key-equals {
+    border-color: transparent;
+    background: var(--color-accent);
+    color: var(--color-background);
+}
+
+.calculator-key-equals:hover,
+.calculator-key-equals:active {
+    background: color-mix(in srgb, var(--color-accent) 85%, var(--color-bright-foreground));
+}

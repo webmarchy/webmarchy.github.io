@@ -1,0 +1,94 @@
+/* Sized in rem (root font = --font-size-base, values are px-at-12 ÷ 12),
+   so the Display panel's TEXT SIZE scales the sheet with the shell. */
+
+.keybindings {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: calc(var(--viewport-h) * 0.1);
+    background: color-mix(in srgb, var(--color-background) 50%, transparent);
+}
+
+.keybindings-card {
+    width: 66.6667rem;
+    max-width: calc(var(--viewport-w) - 40px);
+    max-height: calc(var(--viewport-h) * 0.8 - 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    background: var(--color-background);
+    border: 2px solid var(--color-foreground);
+    border-radius: var(--radius);
+}
+
+.keybindings-header {
+    flex: none;
+    height: 2.8333rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.3333rem;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.keybindings-header-placeholder {
+    opacity: 0.58;
+}
+
+.keybindings-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.keybindings-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 4.1667rem;
+    padding: 0 1.5rem;
+    border-radius: var(--radius);
+    font-size: 1.1667rem;
+    cursor: pointer;
+}
+
+.keybindings-row-selected {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+}
+
+.keybindings-keys {
+    flex: none;
+    width: 44%;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.keybindings-label {
+    flex: 1;
+    min-width: 0;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.keybindings-row-selected .keybindings-label {
+    color: var(--color-bright-foreground);
+}
+
+.keybindings-arrow {
+    opacity: 0.6;
+}

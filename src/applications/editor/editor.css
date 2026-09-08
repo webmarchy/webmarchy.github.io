@@ -1,0 +1,103 @@
+/* Sized in rem (root font = --font-size-base), like all shell chrome. */
+
+.editor {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-background);
+}
+
+.editor-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+/* The gutter clips a translated column of line numbers — scroll sync
+   is a transform driven by the buffer's scrollTop, so the rows stay
+   glued to the buffer's lines. Both columns must keep identical
+   font-size/line-height/vertical padding for that to hold. */
+.editor-gutter {
+    flex: none;
+    min-width: 3.3333rem;
+    overflow: hidden;
+    padding: 0 0;
+    background: var(--color-background);
+    user-select: none;
+}
+
+.editor-gutter-lines {
+    padding: 0.3333rem 0.6667rem 0.3333rem 0;
+}
+
+.editor-gutter-line {
+    display: block;
+    text-align: right;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+}
+
+.editor-gutter-current {
+    color: var(--color-accent);
+}
+
+.editor-buffer {
+    flex: 1;
+    min-width: 0;
+    padding: 0.3333rem 0.6667rem;
+    border: none;
+    outline: none;
+    resize: none;
+    background: transparent;
+    color: var(--color-foreground);
+    caret-color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow: auto;
+}
+
+/* The reverse-video statusline: filename [+] left, the line:column
+   position right, the two glyph buttons as the mouse path to
+   open/save. */
+.editor-statusline {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.6667rem;
+    padding: 0.1667rem 0.8333rem;
+    background: color-mix(in srgb, var(--color-foreground) 78%, var(--color-background));
+    color: var(--color-background);
+    font-size: 1rem;
+}
+
+.editor-filename {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.editor-position {
+    flex: none;
+    margin-left: auto;
+    white-space: pre;
+}
+
+.editor-statusline-button {
+    flex: none;
+    padding: 0 0.3333rem;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 1.1667rem;
+    color: inherit;
+    cursor: pointer;
+}
+
+.editor-statusline-button:hover {
+    opacity: 0.7;
+}

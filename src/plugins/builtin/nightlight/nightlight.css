@@ -1,0 +1,8 @@
+.nightlight {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgb(255, 206, 166);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+}

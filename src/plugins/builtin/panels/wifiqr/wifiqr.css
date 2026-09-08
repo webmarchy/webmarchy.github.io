@@ -1,0 +1,112 @@
+/* The Wi-Fi share overlay: no card, the code floats on a deep scrim
+   that carries the contrast on any wallpaper, so text uses a fixed
+   light palette like upstream's onScrim colors. Sized in rem
+   (px-at-12 ÷ 12) except the QR canvas, which draws integer pixel
+   modules for crispness. */
+
+.wifiqr {
+    position: fixed;
+    inset: 0;
+    z-index: 240;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.78);
+    font-family: var(--font-mono);
+}
+
+.wifiqr-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.3333rem;
+    max-width: 26.6667rem;
+}
+
+.wifiqr-title {
+    max-width: 26.6667rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1667rem;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Entry step: the credentials a browser cannot read itself. */
+
+.wifiqr-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6667rem;
+    width: 22.5rem;
+}
+
+.wifiqr-input {
+    width: 100%;
+    padding: 0.4167rem 0.6667rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: white;
+}
+
+.wifiqr-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.wifiqr-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.wifiqr-generate {
+    margin-top: 0.3333rem;
+    padding: 0.3333rem 1.1667rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius);
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 0.8333rem;
+    color: white;
+    cursor: pointer;
+}
+
+/* ---- The code itself: white canvas, rounded like upstream. */
+
+.wifiqr-canvas {
+    border-radius: var(--radius);
+}
+
+.wifiqr-hint {
+    font-size: 0.8333rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.wifiqr-error {
+    max-width: 26.6667rem;
+    font-size: 0.8333rem;
+    color: #ff6b6b;
+    text-align: center;
+}
+
+.wifiqr-password {
+    max-width: 26.6667rem;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 0.8333rem;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+
+.wifiqr-password-revealed {
+    color: white;
+}

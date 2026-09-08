@@ -1,0 +1,122 @@
+@font-face {
+    font-family: 'omarchy';
+    src: url('./assets/fonts/omarchy.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Symbols Nerd Font';
+    src: url('./assets/fonts/SymbolsNerdFontMono-Regular.ttf') format('truetype');
+}
+
+:root {
+
+    --font-mono: 'CaskaydiaMono Nerd Font', 'Symbols Nerd Font',
+        'Cascadia Mono', 'JetBrains Mono',
+        ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    --font-size-base: 12px;
+    --bar-height: 2.1667rem;      /* 26px at the 12px base */
+    --bar-size-vertical: 2.3333rem;
+    --radius: 0px;
+    --border-width: 2px;
+    --gap: 0.6667rem;
+
+    --shell-zoom: 1;
+    --viewport-w: calc(100vw / var(--shell-zoom));
+    --viewport-h: calc(100vh / var(--shell-zoom));
+}
+
+html {
+    font-size: var(--font-size-base);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-muted) transparent;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+::selection {
+    background: var(--color-selection);
+    color: var(--color-bright-foreground);
+}
+
+#app {
+    height: 100%;
+}
+
+.app-layer {
+    position: fixed;
+    inset: 0;
+    padding: 2.5px;
+    z-index: 10;
+}
+
+html[data-bar-position="top"] .app-layer {
+    top: var(--bar-height);
+}
+
+html[data-bar-position="bottom"] .app-layer {
+    bottom: var(--bar-height);
+}
+
+html[data-bar-position="left"] .app-layer {
+    left: var(--bar-size-vertical);
+}
+
+html[data-bar-position="right"] .app-layer {
+    right: var(--bar-size-vertical);
+}
+
+.app-window {
+    position: absolute;
+    border: var(--border-width) solid
+        color-mix(in srgb, var(--color-accent) 40%, var(--color-background));
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--color-background);
+}
+
+.app-window:not(.app-window-focused) > * {
+    filter: brightness(0.8);
+}
+
+.app-window-focused {
+    border-color: var(--color-accent);
+}
+
+.app-window-fullscreen {
+    left: 2.5px !important;
+    top: 2.5px !important;
+    width: calc(100% - 5px) !important;
+    height: calc(100% - 5px) !important;
+    transform: none !important;
+    z-index: 5 !important;
+}
+
+.app-window > * {
+    height: 100%;
+}
