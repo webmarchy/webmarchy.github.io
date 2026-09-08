@@ -3,9 +3,10 @@
  * `shell/plugins/panels/monitor/Model.js` plus the text-size stop
  * helpers its Panel.qml keeps inline. DOM-free, like the clock's model.
  *
- * The brightness helpers are deliberately not ported: a browser has no
- * backlight, which is exactly upstream's `brightnessAvailable: false`
- * state — the hero reads "FIXED BRIGHTNESS" and the slider never shows.
+ * A browser has no backlight, so brightness is the software analog: a
+ * black dim overlay whose strength the widget scroll adjusts (the
+ * manual's display-widget brightness scroll), clamped well above dark
+ * so the screen never becomes unusable.
  *
  * Everything lives on the single `MonitorModel` namespace to keep the
  * shared global scope down to one name.
@@ -20,6 +21,13 @@ const MonitorModel = {
     // snaps to these stops; a hand-edited setting may sit off-notch and
     // is shown as-is until the slider is touched.
     TEXT_SIZE_STOPS: [9, 10, 11, 12, 14, 16, 20],
+
+    /** @param {*} value */
+    clampBrightness(value) {
+        const n = Number(value)
+        if (!isFinite(n)) return 1
+        return Math.min(1, Math.max(0.3, Math.round(n * 100) / 100))
+    },
 
     /** @param {*} scale */
     normalizeScale(scale) {

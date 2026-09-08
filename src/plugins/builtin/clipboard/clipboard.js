@@ -1,51 +1,3 @@
-/**
- * Clipboard plugin — the clipboard history manager, mirroring upstream
- * `omarchy.clipboard` (`shell/plugins/clipboard/Clipboard.qml`, kind
- * `overlay`, `keepLoaded`): a wide menu-styled card centered over a
- * scrim — search line on top, the history list down the left half, a
- * full preview of the selected entry filling the right half past a
- * hairline.
- *
- * Capture is where a browser must differ, and the differences are
- * honest ones: upstream runs `wl-paste --watch` and sees every copy on
- * the seat; a page cannot observe the OS clipboard passively. What it
- * can see, it records — `copy` / `cut` on anything selected in the
- * shell, `paste` anywhere in it (the pasted payload IS the clipboard),
- * programmatic copies announced via the `omarchy:clipboard-capture`
- * event (detail: the copied text — the emoji picker and calculator
- * dispatch it), and, on open, a one-shot `navigator.clipboard.readText`
- * snapshot of the real OS clipboard (the analog of upstream's startup
- * capture; silently skipped if permission is refused). Text only —
- * image history would blow through localStorage, and no watcher exists
- * to feed it — though the model carries image entries faithfully.
- *
- * History persists newest-first, deduplicated, capped at 500 under its
- * own localStorage key (the analog of upstream's separate
- * `~/.local/state/omarchy/clipboard-history.json` state file — bulk
- * data stays out of the Settings blob), trimming oldest entries when
- * the quota objects.
- *
- * Interactions, matching upstream: typing filters (50-row display cap,
- * 8K per-row scan cap), Backspace edits, Escape clears the query first
- * and closes second, scrim click closes. Up/Down wrap through the
- * rows, PageUp/PageDown stride by 6, Home/End jump, hover moves the
- * cursor. Enter re-copies the entry to the OS clipboard and closes —
- * upstream also types it into the focused app, which a browser cannot;
- * Shift+Enter is upstream's copy-without-pasting, the same thing here.
- * Alt+Enter (upstream `omarchy-clipboard-open`) opens the entry in the
- * editor app. Delete removes the selected entry; Shift+Delete asks
- * "Delete entire clipboard history?" with Cancel preselected. Copied
- * file lists (file:// URI lines) show as "name" / "N files" rows,
- * dimmed, like upstream.
- *
- * Summons: `Super+Ctrl+V` (Alt standing in for Super, as everywhere in
- * this port — upstream's binding next to its Super+C/V/X universal
- * copy/paste, which need no analog here) and the
- * `omarchy:clipboard-toggle` action event, which this plugin owns.
- * (`ClipboardManager` because `Clipboard` is the DOM's own clipboard
- * interface, and the shared global scope must not shadow it.)
- * @extends {Component}
- */
 class ClipboardManager extends Component {
     static template = `
         <div class="clipboard" hidden data-ref="overlay"
@@ -93,13 +45,8 @@ class ClipboardManager extends Component {
         const confirmDelete = /** @type {HTMLButtonElement} */ ($(root, '[data-ref="confirmDelete"]'))
         const confirmCancel = /** @type {HTMLButtonElement} */ ($(root, '[data-ref="confirmCancel"]'))
 
-        // Upstream's clipboard glyph on the empty state, as an escape so
-        // the file survives any non-UTF-8 round trip.
         $(root, '[data-ref="emptyGlyph"]').textContent = '\u{F014C}'
 
-        // The analog of upstream's separate clipboard-history.json state
-        // file: bulk history stays out of the Settings blob, under its
-        // own key.
         const STORAGE_KEY = 'omarchy-clipboard-history'
         const HISTORY_LIMIT = 500
         const PAGE_STRIDE = 6
@@ -116,8 +63,6 @@ class ClipboardManager extends Component {
 
         const opened = () => !overlay.hidden
 
-        // ---- Storage --------------------------------------------------
-
         function loadStoredHistory() {
             try {
                 return ClipboardHistory.parseHistory(localStorage.getItem(STORAGE_KEY))
@@ -126,9 +71,6 @@ class ClipboardManager extends Component {
             }
         }
 
-        // Quota failures trim the oldest half away until the write fits —
-        // a full localStorage otherwise silently stops recording, the
-        // exact failure upstream's watcher-restart timer guards against.
         function saveHistory() {
             let keep = Math.min(history.length, HISTORY_LIMIT)
             for (; ;) {
@@ -142,8 +84,6 @@ class ClipboardManager extends Component {
             }
         }
 
-        // ---- Capture --------------------------------------------------
-
         /** @param {*} text */
         function captureText(text) {
             const entry = ClipboardHistory.normalizeEntry(String(text ?? ''))
@@ -153,7 +93,7 @@ class ClipboardManager extends Component {
             if (opened()) rebuild()
         }
 
-        /** The selection a copy/cut just put on the clipboard. */
+        /** @returns {string} */
         function selectedText() {
             const active = document.activeElement
             if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
@@ -169,14 +109,9 @@ class ClipboardManager extends Component {
         document.addEventListener('paste', event => {
             captureText(event.clipboardData ? event.clipboardData.getData('text/plain') : '')
         })
-        // Programmatic copies (clipboard API calls fire no copy event) —
-        // the emoji picker and calculator announce theirs here, the way
-        // every wl-copy reaches upstream's watcher.
         document.addEventListener('omarchy:clipboard-capture', event => {
             captureText(/** @type {CustomEvent} */(event).detail)
         })
-
-        // ---- Actions --------------------------------------------------
 
         /** @param {string} text */
         function copyText(text) {
@@ -199,10 +134,6 @@ class ClipboardManager extends Component {
         }
 
         /**
-         * Enter and Shift+Enter both land here: upstream pastes into the
-         * focused app after copying (Shift+Enter copies only) — a
-         * browser can only do the copy half of either. Re-copying also
-         * moves the entry back to the top, as the watcher would.
          * @param {number} index
          */
         function copyIndex(index) {
@@ -217,8 +148,6 @@ class ClipboardManager extends Component {
         }
 
         /**
-         * Alt+Enter, upstream's `omarchy-clipboard-open`: the editor app
-         * is where a copied text opens here.
          * @param {number} index
          */
         function openIndex(index) {
@@ -268,8 +197,6 @@ class ClipboardManager extends Component {
             renderConfirm()
             rebuild()
         }
-
-        // ---- Rendering ------------------------------------------------
 
         function renderHeader() {
             if (filterText) {
@@ -325,7 +252,7 @@ class ClipboardManager extends Component {
             empty.hidden = rows.length > 0
             emptyText.textContent = history.length === 0
                 ? 'Clipboard is empty'
-                : `No matches for “${filterText}”`
+                : `No matches for "${filterText}"`
 
             list.textContent = ''
             rows.forEach((row, index) => {
@@ -342,8 +269,6 @@ class ClipboardManager extends Component {
                 }
                 const label = document.createElement('span')
                 label.className = 'clipboard-row-text'
-                // Image and file rows read as descriptions, dimmed like
-                // upstream (0.72).
                 if (row.entryType !== 'text') label.classList.add('clipboard-row-text-muted')
                 label.textContent = row.previewText
                 cell.appendChild(label)
@@ -393,17 +318,12 @@ class ClipboardManager extends Component {
             updateSelection(true)
         }
 
-        // ---- Summon / dismiss -----------------------------------------
-
         function open() {
             filterText = ''
             selectedIndex = 0
             cursorActive = true
             overlay.hidden = false
             rebuild()
-            // The one OS-clipboard read a browser allows: snapshot the
-            // current selection into history, like upstream's startup
-            // capture. Refused permission just means no snapshot.
             if (navigator.clipboard && navigator.clipboard.readText) {
                 navigator.clipboard.readText().then(captureText).catch(() => { })
             }
@@ -424,9 +344,6 @@ class ClipboardManager extends Component {
         confirmDelete.addEventListener('click', () => confirmClearHistory())
         confirmCancel.addEventListener('click', () => cancelClearHistory())
 
-        // Capture phase so the manager's exclusive keyboard (upstream:
-        // WlrKeyboardFocus.Exclusive) beats the menu's own document
-        // handler when summoned over it.
         document.addEventListener('keydown', event => {
             if (!opened()) return
             event.preventDefault()
@@ -473,7 +390,6 @@ class ClipboardManager extends Component {
 
         document.addEventListener('omarchy:clipboard-toggle', () => toggle())
 
-        // ---- Keybinding: Super+Ctrl+V, the Super stand-in as usual.
         const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
 
         /** @param {KeyboardEvent} event */
@@ -489,8 +405,6 @@ class ClipboardManager extends Component {
             event.preventDefault()
             event.stopImmediatePropagation()
 
-            // A fullscreen surface above owns the keyboard (same guard
-            // as the menu's summon).
             const modalBlocking = ['.image-picker', '.keybindings', '.reminders',
                 '.emojis', '.lock', '.screensaver', '.system-login'].some(selector => {
                 const el = /** @type {HTMLElement | null} */ (document.querySelector(selector))
@@ -498,8 +412,6 @@ class ClipboardManager extends Component {
             })
             if (modalBlocking) return
 
-            // Summoning over the open menu closes it, like a menu-run
-            // action would.
             const menu = /** @type {HTMLElement | null} */ (document.querySelector('.menu'))
             if (menu && !menu.hidden && overlay.hidden) {
                 document.dispatchEvent(new CustomEvent('omarchy:menu-toggle'))

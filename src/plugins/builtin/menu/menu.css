@@ -137,3 +137,7 @@
 .menu-row-selected .menu-row-trailing {
     color: var(--color-accent);
 }
+
+.menu-card-wide {
+    width: 43.3333rem;
+}

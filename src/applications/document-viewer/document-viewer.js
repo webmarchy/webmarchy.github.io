@@ -1,34 +1,4 @@
-/**
- * Document viewer app — the PDF reader of the app shelf, standing in
- * for Omarchy's default document viewer: keyboard-driven and
- * chromeless, just the pages on a themed ground with a small info
- * overlay, like the image viewer. The window chrome is the app
- * layer's (accent border, gap); the surrounding UI follows the active
- * theme — the pages themselves are drawn by the browser's built-in
- * PDF renderer, which is the one surface the theme can't reach.
- *
- * Rendering uses the proper HTML element for embedded documents:
- * `<object type="application/pdf">` with themed fallback content for
- * browsers that can't display PDFs inline. The built-in renderer's own
- * toolbar is hidden by default (Chromium's `#toolbar=0&navpanes=0`
- * open params — other engines ignore them harmlessly) to keep the
- * chromeless look; `t` toggles it for a page list, search, print. Note
- * the toggle re-sets `data`, which reloads the document at page 1.
- *
- * Opens empty: files arrive through the Open button (or `o`, or
- * dropping them onto the window), staying in memory as object URLs
- * that are revoked when the viewer closes. Another app can also launch
- * it straight onto documents — `omarchy:app-launch` with
- * `{id: 'document-viewer', config: {documents: [{src, label?}], index?}}`
- * — the same contract shape as the image viewer's.
- *
- * Keys: `n`/`p` walk the opened documents (wrapping), `t` toggles the
- * renderer's toolbar, `i` toggles the info overlay, `o` opens files,
- * `q` closes the window (`Alt+W` still works, as everywhere). Paging,
- * scrolling, and zoom inside a document belong to the built-in
- * renderer (wheel, PgUp/PgDn, Ctrl+wheel once it has focus).
- * @extends {Component}
- */
+/** @extends {Component} */
 class DocumentViewer extends Component {
     static template = `
         <section class="document-viewer" data-ref="viewer">
@@ -61,10 +31,9 @@ class DocumentViewer extends Component {
     `
 
     /**
-     * @param {Object} [config] - Launch config, for apps opening the
-     *   viewer on something (the file explorer, eventually).
+     * @param {Object} [config]
      * @param {{src: string, label?: string}[]} [config.documents]
-     * @param {number} [config.index] - Which of them to show first.
+     * @param {number} [config.index]
      */
     constructor(config) {
         super()
@@ -97,7 +66,7 @@ class DocumentViewer extends Component {
             .map(item => ({ src: item.src, label: item.label || basename(item.src) }))
         let index = Math.max(0, Math.min(this.launchIndex, documents.length - 1))
         let toolbar = false
-        /** @type {string[]} Object URLs owned by this instance. */
+        /** @type {string[]} */
         const objectUrls = []
 
         function render() {
@@ -111,10 +80,8 @@ class DocumentViewer extends Component {
             metaLabel.textContent = `[${index + 1}/${documents.length}]`
         }
 
-        /** Points the renderer at the current document. */
         function load() {
             if (!documents.length) return
-            // Chromium PDF open params; other engines ignore the hash.
             frame.data = documents[index].src
                 + (toolbar ? '' : '#toolbar=0&navpanes=0')
             fallbackLink.href = documents[index].src
@@ -143,7 +110,6 @@ class DocumentViewer extends Component {
             show(1)
         }
 
-        /** Cleans up everything the closed viewer left on the document. */
         function disconnected() {
             if (viewer.isConnected) return false
             document.removeEventListener('keydown', onKey)
@@ -156,8 +122,6 @@ class DocumentViewer extends Component {
         function onKey(event) {
             if (disconnected()) return
             if (!AppLibrary.focusedContains(viewer)) return
-            // A shell surface that handled the key marks it; anything
-            // fullscreen above the window layer owns the keyboard.
             if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return
             for (const selector of ['.menu', '.image-picker', '.keybindings',
                 '.lock', '.screensaver', '.system-login']) {
@@ -184,7 +148,6 @@ class DocumentViewer extends Component {
 
         document.addEventListener('keydown', onKey)
 
-        // ---- Opening documents: drag-drop onto the window, or the picker.
         viewer.addEventListener('dragover', event => event.preventDefault())
         viewer.addEventListener('drop', event => {
             event.preventDefault()

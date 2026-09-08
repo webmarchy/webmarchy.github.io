@@ -143,6 +143,21 @@ class ImagePicker extends Component {
                 'omarchy:background-set')
         })
 
+        document.addEventListener('omarchy:unlock-picker', () => {
+            const names = Theme.names()
+            const current = String(Settings.get('lock.unlockTheme', '') || Theme.current)
+            open(
+                names.map(name => ({
+                    image: `./src/themes/${name}/preview-unlock.png`,
+                    value: name,
+                    label: name.split('-')
+                        .map(part => part[0].toUpperCase() + part.slice(1))
+                        .join(' '),
+                })),
+                Math.max(0, names.indexOf(current)),
+                'omarchy:unlock-set')
+        })
+
         document.addEventListener('omarchy:theme-picker', () => {
             const names = Theme.names()
             open(

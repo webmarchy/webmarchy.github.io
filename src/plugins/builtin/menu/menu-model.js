@@ -35,12 +35,15 @@ const MENU_ITEMS = {
     'trigger.toggle.top-bar': { icon: '\u{f035c}', label: 'Menu Bar', action: 'omarchy:bar-toggle' },
     'trigger.toggle.idle-lock': { icon: '\u{f0176}', label: 'Stay Awake', action: 'omarchy:idle-toggle' },
     'trigger.toggle.nightlight': { icon: '\u{f050e}', label: 'Nightlight', action: 'omarchy:nightlight-toggle' },
+    'trigger.toggle.gaps': { icon: '\u{f0521}', label: 'Window Gaps', aliases: ['gaps'], action: 'omarchy:gaps-toggle' },
     'trigger.tests': { icon: '\u{f04c5}', label: 'Speed Test' },
     'trigger.tests.network-speedtest': { icon: '\u{f04c5}', label: 'Network Speed Test', action: 'omarchy:speedtest-toggle' },
     'trigger.tests.disk-speedtest': { icon: '\u{f02ca}', label: 'Disk Speed Test', action: 'omarchy:disk-speedtest-toggle' },
 
     'style.theme': { icon: '\u{f0e0c}', label: 'Theme', aliases: ['theme', 'themes'], action: 'omarchy:theme-picker' },
     'style.background': { icon: '\u{f03e}', label: 'Background', aliases: ['background', 'wallpaper'], action: 'omarchy:background-picker' },
+    'style.font': { icon: '\u{f031d}', label: 'Font', aliases: ['fonts', 'typeface'], provider: 'fonts' },
+    'style.unlock': { icon: '\u{f033e}', label: 'Unlock', aliases: ['lock-screen', 'branding'], action: 'omarchy:unlock-picker' },
     'style.bar': { icon: '\u{f035c}', label: 'Menu Bar' },
     'style.bar.position': { icon: '\u{eb81}', label: 'Position' },
     'style.bar.position.top': { icon: '\u{f005d}', label: 'Top', action: 'omarchy:bar-position top' },
@@ -49,8 +52,12 @@ const MENU_ITEMS = {
     'style.bar.position.right': { icon: '\u{f0054}', label: 'Right', action: 'omarchy:bar-position right' },
     'style.bar.transparency': { icon: '\u{f00b5}', label: 'Transparency', action: 'omarchy:bar-transparency toggle' },
 
+    'setup.audio': { icon: '\u{f057e}', label: 'Audio', aliases: ['volume', 'sound'], action: 'omarchy:audio-toggle' },
+    'setup.bluetooth': { icon: '\u{f00af}', label: 'Bluetooth', action: 'omarchy:bluetooth-toggle' },
+    'setup.power': { icon: '\u{f0079}', label: 'Power', aliases: ['battery'], action: 'omarchy:power-toggle' },
     'setup.monitors': { icon: '\u{f0379}', label: 'Monitors', aliases: ['display'], action: 'omarchy:monitor-toggle' },
     'setup.network': { icon: '\u{f06f3}', label: 'Network', aliases: ['network'] },
+    'setup.network.panel': { icon: '\u{f06f3}', label: 'Panel', aliases: ['ethernet', 'wifi'], action: 'omarchy:network-toggle' },
     'setup.network.qr': { icon: '\u{f0432}', label: 'QR Code', aliases: ['wifi-qr'], action: 'omarchy:wifiqr-toggle' },
     'setup.reset': { icon: '\u{f0453}', label: 'Reset Computer', aliases: ['factory-reset'], action: 'omarchy:factory-reset' },
 
@@ -71,6 +78,23 @@ const MENU_PROVIDERS = {
             label: app.name,
             action: `omarchy:app-launch ${app.id}`,
         }))
+    },
+    fonts() {
+        const current = Fonts.current()
+        return [
+            {
+                id: 'style.font.default',
+                icon: current ? '\u{f031d}' : '\u{f012c}',
+                label: 'System Default',
+                action: 'omarchy:font-set',
+            },
+            ...Fonts.available().map(name => ({
+                id: `style.font.${name}`,
+                icon: name === current ? '\u{f012c}' : '\u{f031d}',
+                label: name,
+                action: `omarchy:font-set ${name}`,
+            })),
+        ]
     },
 }
 

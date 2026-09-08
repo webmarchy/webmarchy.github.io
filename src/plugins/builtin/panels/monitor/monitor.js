@@ -52,7 +52,7 @@ class MonitorBarWidget extends Component {
                     <span class="monitor-hero-glyph" data-ref="heroGlyph"></span>
                     <div class="monitor-hero-labels">
                         <span class="monitor-hero-title">Display</span>
-                        <span class="monitor-hero-status">FIXED BRIGHTNESS</span>
+                        <span class="monitor-hero-status" data-ref="heroStatus"></span>
                     </div>
                 </div>
                 <div class="monitor-separator"></div>
@@ -95,6 +95,31 @@ class MonitorBarWidget extends Component {
         // variant only with several outputs; a browser has one).
         button.textContent = '\u{F0379}'
         $(root, '[data-ref="heroGlyph"]').textContent = '\u{F0379}'
+        const heroStatus = $(root, '[data-ref="heroStatus"]')
+
+        const dim = document.createElement('div')
+        dim.className = 'monitor-dim'
+        document.body.appendChild(dim)
+
+        let brightness = MonitorModel.clampBrightness(
+            Settings.get('monitor.brightness', 1))
+
+        function applyBrightness() {
+            dim.style.opacity = String(1 - brightness)
+            heroStatus.textContent = `BRIGHTNESS ${Math.round(brightness * 100)}%`
+        }
+
+        /** @param {number} delta */
+        function stepBrightness(delta) {
+            brightness = MonitorModel.clampBrightness(brightness + delta)
+            Settings.set('monitor.brightness', brightness)
+            applyBrightness()
+        }
+
+        button.addEventListener('wheel', event => {
+            event.preventDefault()
+            stepBrightness(event.deltaY > 0 ? -0.05 : 0.05)
+        }, { passive: false })
 
         const stops = MonitorModel.TEXT_SIZE_STOPS
         slider.setAttribute('aria-valuemax', String(stops.length - 1))
@@ -335,8 +360,19 @@ class MonitorBarWidget extends Component {
 
         document.addEventListener('omarchy:monitor-toggle', () => toggle())
 
+        document.addEventListener('omarchy:monitor-scale-step', event => {
+            const delta = Number(/** @type {CustomEvent} */ (event).detail) || 1
+            if (!scaleValues.length) return
+            const active = MonitorModel.matchingScaleIndex(
+                scaleValues, currentScale, modeWidth, modeHeight)
+            const span = scaleValues.length
+            const next = ((Math.max(0, active) + delta) % span + span) % span
+            setScale(scaleValues[next])
+        })
+
         applyTextSize()
         applyScale()
+        applyBrightness()
         render()
     }
 }

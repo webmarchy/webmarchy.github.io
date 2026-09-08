@@ -34,6 +34,13 @@ class WorkspacesWidget extends Component {
             })
         }
 
+        strip.addEventListener('wheel', event => {
+            event.preventDefault()
+            document.dispatchEvent(new CustomEvent('omarchy:workspace-step', {
+                detail: event.deltaY > 0 || event.deltaX > 0 ? 1 : -1,
+            }))
+        }, { passive: false })
+
         document.addEventListener('omarchy:workspaces-changed', render)
         render()
     }

@@ -8,6 +8,46 @@
     src: url('./assets/fonts/SymbolsNerdFontMono-Regular.ttf') format('truetype');
 }
 
+@font-face {
+    font-family: 'Adwaita Mono';
+    src: url('./assets/fonts/AdwaitaMono-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'JetBrainsMono Nerd Font';
+    src: url('./assets/fonts/JetBrainsMonoNerdFont-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'JetBrainsMono Nerd Font Mono';
+    src: url('./assets/fonts/JetBrainsMonoNerdFontMono-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'JetBrainsMonoNL Nerd Font';
+    src: url('./assets/fonts/JetBrainsMonoNLNerdFont-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'JetBrainsMonoNL Nerd Font Mono';
+    src: url('./assets/fonts/JetBrainsMonoNLNerdFontMono-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Liberation Mono';
+    src: url('./assets/fonts/LiberationMono-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'iA Writer Mono S';
+    src: url('./assets/fonts/iAWriterMonoS-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Noto Sans Mono';
+    src: url('./assets/fonts/NotoSansMono-Regular.ttf') format('truetype');
+}
+
 :root {
 
     --font-mono: 'CaskaydiaMono Nerd Font', 'Symbols Nerd Font',
@@ -115,6 +155,21 @@ html[data-bar-position="right"] .app-layer {
     height: calc(100% - 5px) !important;
     transform: none !important;
     z-index: 5 !important;
+}
+
+html[data-gaps="off"] .app-window-fullscreen {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+html[data-gaps="off"] .app-window {
+    border-radius: 0;
+}
+
+.app-window-transparent {
+    opacity: 0.85;
 }
 
 .app-window > * {

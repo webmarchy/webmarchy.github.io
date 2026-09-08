@@ -21,33 +21,52 @@
     background: color-mix(in srgb, var(--color-background) 80%, transparent);
 }
 
-.lock-form {
+.lock-card {
     position: relative;
+    width: 49%;
+    aspect-ratio: 980 / 625;
+    background: var(--color-background);
+    border: 2px solid var(--color-accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
+}
+
+.lock-logo {
+    width: 48.5%;
+    image-rendering: pixelated;
+}
+
+.lock-form {
+    display: flex;
+    align-items: center;
+    gap: 0.6667rem;
+}
+
+.lock-glyph {
+    color: var(--color-foreground);
+    font-size: 1.1667rem;
+    line-height: 1;
 }
 
 .lock-input {
-    width: 26.6667rem;
-    height: 4.3333rem;
-    padding: 0 1.3333rem;
-    text-align: center;
-    background: color-mix(in srgb, var(--color-background) 60%, transparent);
+    width: 13.75rem;
+    height: 1.8333rem;
+    padding: 0 0.5rem;
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
     color: var(--color-foreground);
-    border: 2px solid var(--color-foreground);
-    border-radius: var(--radius);
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    border-radius: 0.1667rem;
     font-family: var(--font-mono);
-    font-size: 1.1667rem;
+    font-size: 1rem;
     letter-spacing: 0.2857em;
     outline: none;
 }
 
 .lock-input:focus {
     border-color: var(--color-accent);
-}
-
-.lock-input::placeholder {
-    color: var(--color-foreground);
-    opacity: 0.66;
-    letter-spacing: normal;
 }
 
 .lock-input-shake {

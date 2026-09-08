@@ -13,6 +13,13 @@ class MenuBarWidget extends Component {
             button.blur()
             document.dispatchEvent(new CustomEvent('omarchy:menu-toggle'))
         })
+        button.addEventListener('contextmenu', event => {
+            event.preventDefault()
+            button.blur()
+            document.dispatchEvent(new CustomEvent('omarchy:app-launch', {
+                detail: 'terminal',
+            }))
+        })
     }
 }
 

@@ -202,3 +202,12 @@ html[data-bar-position="right"] .monitor-panel {
 .monitor-cursor {
     border-color: var(--color-accent);
 }
+
+.monitor-dim {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9999;
+}

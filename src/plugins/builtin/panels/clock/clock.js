@@ -80,6 +80,11 @@ class ClockBarWidget extends Component {
                                 title="Next month"></button>
                     </div>
                 </div>
+                <div class="clock-zones" hidden data-ref="zones">
+                    <input class="clock-input clock-zone-search" data-ref="zoneSearch"
+                           placeholder="Timezone…" aria-label="Timezone search">
+                    <ul class="clock-zone-list" data-ref="zoneList"></ul>
+                </div>
             </div>
         </div>
     `
@@ -102,6 +107,9 @@ class ClockBarWidget extends Component {
         const lifePercent = $(root, '[data-ref="lifePercent"]')
         const grid = $(root, '[data-ref="grid"]')
         const navLabel = $(root, '[data-ref="navLabel"]')
+        const zones = $(root, '[data-ref="zones"]')
+        const zoneSearch = /** @type {HTMLInputElement} */ ($(root, '[data-ref="zoneSearch"]'))
+        const zoneList = $(root, '[data-ref="zoneList"]')
 
         // Nerd Font glyphs, same codepoints as upstream (calendar mark,
         // chevrons), set here rather than in the template so the file
@@ -112,14 +120,30 @@ class ClockBarWidget extends Component {
         prevButton.textContent = '\u{F0141}'
         nextButton.textContent = '\u{F0142}'
 
+        function clockZone() {
+            return String(Settings.get('clock.timezone', '') || '')
+        }
+
+        function clockNow() {
+            const zone = clockZone()
+            const now = new Date()
+            if (!zone) return now
+            try {
+                return new Date(now.toLocaleString('en-US', { timeZone: zone }))
+            } catch {
+                return now
+            }
+        }
+
         // ---- State. `today` is re-read on every tick so the highlight
         //      rolls over at midnight without the panel being reopened;
         //      the view month is the only other thing that moves.
-        let today = new Date()
+        let today = clockNow()
         let todayKey = ClockModel.keyForDate(today)
         let viewYear = today.getFullYear()
         let viewMonth = today.getMonth()
         let editingLife = false
+        let pickingZone = false
         let tickTimer = 0
 
         // The bar mirrors its position onto `<html data-bar-position>`
@@ -173,7 +197,7 @@ class ClockBarWidget extends Component {
         }
 
         function tick() {
-            today = new Date()
+            today = clockNow()
             const key = ClockModel.keyForDate(today)
             if (key !== todayKey) {
                 todayKey = key
@@ -308,7 +332,7 @@ class ClockBarWidget extends Component {
         }
 
         function open() {
-            today = new Date()
+            today = clockNow()
             todayKey = ClockModel.keyForDate(today)
             goToToday()
             renderPanel()
@@ -321,6 +345,7 @@ class ClockBarWidget extends Component {
             // inputs up, waiting behind a closed popup for the next time
             // it opens.
             if (editingLife) cancelEditingLife()
+            if (pickingZone) closeZones()
             panel.hidden = true
             button.setAttribute('aria-expanded', 'false')
         }
@@ -391,6 +416,64 @@ class ClockBarWidget extends Component {
             renderPanel()
         }
 
+        // ---- Timezone picker ------------------------------------------
+
+        function zoneChoices() {
+            try {
+                return Intl.supportedValuesOf('timeZone')
+            } catch {
+                return /** @type {string[]} */ ([])
+            }
+        }
+
+        /** @type {string[]} */
+        let zoneRows = []
+
+        function renderZones() {
+            const query = zoneSearch.value.trim().toLowerCase()
+            const matches = zoneChoices().filter(zone =>
+                zone.toLowerCase().replaceAll('_', ' ').includes(query))
+            zoneRows = [
+                ...(query === '' || 'local time'.includes(query) ? [''] : []),
+                ...matches.slice(0, 12),
+            ]
+            const current = clockZone()
+            zoneList.textContent = ''
+            for (const zone of zoneRows) {
+                const li = document.createElement('li')
+                li.className = 'clock-zone-row'
+                li.textContent = zone === '' ? 'Local time' : zone.replaceAll('_', ' ')
+                li.classList.toggle('clock-zone-row-active', zone === current)
+                li.addEventListener('click', () => applyZone(zone))
+                zoneList.appendChild(li)
+            }
+        }
+
+        /** @param {string} zone */
+        function applyZone(zone) {
+            Settings.set('clock.timezone', zone)
+            close()
+            tick()
+        }
+
+        function openZones() {
+            if (panel.hidden) open()
+            if (editingLife) cancelEditingLife()
+            pickingZone = true
+            panel.dataset.mode = 'zones'
+            zones.hidden = false
+            zoneSearch.value = ''
+            renderZones()
+            zoneSearch.focus()
+        }
+
+        function closeZones() {
+            pickingZone = false
+            delete panel.dataset.mode
+            zones.hidden = true
+            zoneSearch.blur()
+        }
+
         // ---- Wiring ---------------------------------------------------
 
         button.addEventListener('click', () => {
@@ -400,6 +483,23 @@ class ClockBarWidget extends Component {
         button.addEventListener('contextmenu', event => {
             event.preventDefault()
             cycleFormat()
+        })
+        button.addEventListener('auxclick', event => {
+            if (event.button !== 1) return
+            event.preventDefault()
+            if (pickingZone) closeZones()
+            else openZones()
+        })
+        zoneSearch.addEventListener('input', () => renderZones())
+        zoneSearch.addEventListener('keydown', event => {
+            event.stopPropagation()
+            if (event.key === 'Escape') {
+                closeZones()
+                event.preventDefault()
+            } else if (event.key === 'Enter') {
+                if (zoneRows.length) applyZone(zoneRows[0])
+                event.preventDefault()
+            }
         })
 
         hero.addEventListener('click', () => {
@@ -426,6 +526,14 @@ class ClockBarWidget extends Component {
 
         document.addEventListener('keydown', event => {
             if (!opened() || editingLife) return
+            if (pickingZone) {
+                if (event.key === 'Escape') {
+                    closeZones()
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                return
+            }
             // A fullscreen surface above the panel owns the keyboard.
             for (const selector of ['.menu', '.image-picker', '.keybindings',
                 '.lock', '.screensaver', '.system-login']) {

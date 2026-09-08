@@ -46,6 +46,7 @@ class Menu extends Component {
         function render() {
             const rows = currentRows()
             selectedIndex = Math.min(selectedIndex, Math.max(0, rows.length - 1))
+            card.classList.toggle('menu-card-wide', activeMenu === 'style.font')
 
             if (filter) {
                 header.textContent = filter
@@ -139,7 +140,10 @@ class Menu extends Component {
 
         function open(startMenu = 'root') {
             activeMenu = startMenu
-            providerRows = null
+            const provider = MENU_ITEMS[startMenu]?.provider
+            providerRows = provider
+                ? MENU_PROVIDERS[provider]?.() ?? []
+                : null
             filter = ''
             selectedIndex = 0
             menu.hidden = false
@@ -161,7 +165,15 @@ class Menu extends Component {
         dismissOnOutsideClick(() => !menu.hidden, close,
             target => card.contains(target))
 
-        document.addEventListener('omarchy:menu-toggle', () => toggle())
+        document.addEventListener('omarchy:menu-toggle', event => {
+            const startMenu = String(/** @type {CustomEvent} */ (event).detail || '')
+            if (startMenu && MENU_ITEMS[startMenu]) {
+                if (menu.hidden || activeMenu !== startMenu) open(startMenu)
+                else close()
+            } else {
+                toggle()
+            }
+        })
 
         const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
 
