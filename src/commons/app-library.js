@@ -7,9 +7,20 @@
  */
 
 /**
+ * @typedef {Object} AppSession
+ * @property {*} state
+ * @property {(blob: *) => void} save
+ * @property {(slot: string, blob: Blob) => Promise<*>} putFile
+ * @property {(slot: string) => Promise<Blob | null>} getFile
+ * @property {(slot: string) => Promise<*>} removeFile
+ */
+
+/**
  * @typedef {Object} AppWindow
  * @property {string} id
+ * @property {string} app
  * @property {HTMLElement} element
+ * @property {*} state
  * @property {number} workspace
  * @property {boolean} fullscreen
  * @property {boolean} floating
@@ -59,6 +70,8 @@ const AppLibrary = {
     _formerWorkspace: 1,
     _scratchVisible: false,
     _gaps: true,
+    _persistTimer: 0,
+    _persistDisabled: false,
     current: '',
 
     /**
@@ -107,6 +120,19 @@ const AppLibrary = {
             this.stepWorkspace(Number(/** @type {CustomEvent} */ (event).detail) || 1)
         })
         document.addEventListener('omarchy:gaps-toggle', () => this.toggleGaps())
+        document.addEventListener('omarchy:factory-reset', () => {
+            this._persistDisabled = true
+            clearTimeout(this._persistTimer)
+        })
+        window.addEventListener('pagehide', () => {
+            clearTimeout(this._persistTimer)
+            this._persistTimer = 0
+            document.dispatchEvent(new CustomEvent('omarchy:session-flush'))
+            this._persist()
+        })
+        this._restore()
+        if (this._windows.length) requestAnimationFrame(() => this._layout())
+        BlobStore.sweep(new Set(this._windows.map(win => win.id)))
     },
 
     /**
@@ -301,24 +327,152 @@ const AppLibrary = {
     launch(id, config) {
         const entry = this._entries.get(id)
         if (!entry || !this._host) return
-        const windowId = `${id}#${++this._sequence}`
-        const element = document.createElement('div')
-        element.className = 'app-window'
-        element.addEventListener('pointerdown', () => this.focus(windowId), { capture: true })
-        mount(element, new entry.component(config))
-        this._host.appendChild(element)
-        this._windows.push({
-            id: windowId, element, workspace: this._activeWorkspace, fullscreen: false,
-            floating: Boolean(entry.floating),
-            sticky: false, scratch: false, transparent: false,
-            splitAxis: null, effectiveAxis: 'h', ratio: 0.5,
-            floatingSize: typeof entry.floating === 'object' ? entry.floating : null,
-            floatingPos: null,
-        })
+        const win = this._spawn(id, entry, config, null)
         this._host.hidden = false
         this._apply()
-        this.focus(windowId)
+        this.focus(win.id)
         this._notify()
+    },
+
+    /**
+     * @param {string} id
+     * @param {AppEntry} entry
+     * @param {*} config
+     * @param {Record<string, *> | null} saved
+     * @returns {AppWindow}
+     */
+    _spawn(id, entry, config, saved) {
+        const host = /** @type {HTMLElement} */ (this._host)
+        const element = document.createElement('div')
+        element.className = 'app-window'
+        /** @type {AppWindow} */
+        const win = {
+            id: typeof saved?.id === 'string' ? saved.id : `${id}#${++this._sequence}`,
+            app: id, element,
+            state: saved?.state ?? null,
+            workspace: Number.isInteger(saved?.workspace)
+                && saved.workspace >= 1 && saved.workspace <= this.WORKSPACES
+                ? saved.workspace : this._activeWorkspace,
+            fullscreen: Boolean(saved?.fullscreen),
+            floating: saved ? Boolean(saved.floating) : Boolean(entry.floating),
+            sticky: Boolean(saved?.sticky),
+            scratch: Boolean(saved?.scratch),
+            transparent: Boolean(saved?.transparent),
+            splitAxis: saved?.splitAxis === 'h' || saved?.splitAxis === 'v'
+                ? saved.splitAxis : null,
+            effectiveAxis: 'h',
+            ratio: typeof saved?.ratio === 'number' ? saved.ratio : 0.5,
+            floatingSize: typeof saved?.floatingSize?.width === 'string'
+                && typeof saved?.floatingSize?.height === 'string'
+                ? { width: saved.floatingSize.width, height: saved.floatingSize.height }
+                : (typeof entry.floating === 'object' ? entry.floating : null),
+            floatingPos: typeof saved?.floatingPos?.x === 'number'
+                && typeof saved?.floatingPos?.y === 'number'
+                ? { x: saved.floatingPos.x, y: saved.floatingPos.y }
+                : null,
+        }
+        element.addEventListener('pointerdown', () => this.focus(win.id), { capture: true })
+        element.classList.toggle('app-window-transparent', win.transparent)
+        const merged = typeof config === 'object' && config !== null ? { ...config } : {}
+        merged.session = this._sessionChannel(win)
+        mount(element, new entry.component(merged))
+        host.appendChild(element)
+        this._windows.push(win)
+        return win
+    },
+
+    /**
+     * @param {AppWindow} win
+     * @returns {AppSession}
+     */
+    _sessionChannel(win) {
+        const shell = this
+        return {
+            state: win.state,
+            save(blob) {
+                win.state = blob
+                shell._schedulePersist()
+            },
+            putFile(slot, blob) {
+                return BlobStore.put(`${win.id}/${slot}`, blob)
+            },
+            getFile(slot) {
+                return BlobStore.get(`${win.id}/${slot}`)
+            },
+            removeFile(slot) {
+                return BlobStore.remove(`${win.id}/${slot}`)
+            },
+        }
+    },
+
+    _restore() {
+        const saved = Settings.get('session')
+        if (typeof saved !== 'object' || saved === null || saved.v !== 1
+            || !Array.isArray(saved.windows) || !this._host) return
+        try {
+            for (const savedWin of saved.windows) {
+                if (typeof savedWin !== 'object' || savedWin === null) continue
+                const entry = this._entries.get(String(savedWin.app))
+                if (!entry) continue
+                this._spawn(String(savedWin.app), entry, undefined, savedWin)
+            }
+            if (!this._windows.length) return
+            for (const win of this._windows) {
+                const suffix = Number(win.id.slice(win.id.lastIndexOf('#') + 1))
+                if (Number.isFinite(suffix)) {
+                    this._sequence = Math.max(this._sequence, suffix)
+                }
+            }
+            this._sequence = Math.max(this._sequence, Number(saved.sequence) || 0)
+            this._activeWorkspace = Number.isInteger(saved.active)
+                && saved.active >= 1 && saved.active <= this.WORKSPACES ? saved.active : 1
+            this._formerWorkspace = Number.isInteger(saved.former)
+                && saved.former >= 1 && saved.former <= this.WORKSPACES
+                ? saved.former : this._activeWorkspace
+            this._scratchVisible = Boolean(saved.scratchVisible)
+            this._host.hidden = false
+            this._apply()
+            const focused = this._windows.find(win =>
+                win.id === saved.focused && this._activeWindows().includes(win))
+            const visible = this._activeWindows()
+            if (focused) this.focus(focused.id)
+            else if (visible.length) this.focus(visible[visible.length - 1].id)
+            this._notify()
+        } catch {
+            for (const win of [...this._windows]) {
+                win.element.remove()
+            }
+            this._windows.length = 0
+            this.current = ''
+        }
+    },
+
+    _schedulePersist() {
+        if (this._persistDisabled || this._persistTimer) return
+        this._persistTimer = setTimeout(() => {
+            this._persistTimer = 0
+            this._persist()
+        }, 250)
+    },
+
+    _persist() {
+        if (this._persistDisabled || !this._host) return
+        Settings.set('session', {
+            v: 1,
+            active: this._activeWorkspace,
+            former: this._formerWorkspace,
+            scratchVisible: this._scratchVisible,
+            sequence: this._sequence,
+            focused: this.current,
+            windows: this._windows.map(win => ({
+                id: win.id, app: win.app, workspace: win.workspace,
+                fullscreen: win.fullscreen, floating: win.floating,
+                sticky: win.sticky, scratch: win.scratch, transparent: win.transparent,
+                splitAxis: win.splitAxis, ratio: win.ratio,
+                floatingSize: win.floatingSize, floatingPos: win.floatingPos,
+                state: win.state,
+            })),
+        })
     },
 
     /**
@@ -365,6 +519,7 @@ const AppLibrary = {
         const index = this._windows.findIndex(win => win.id === id)
         if (index < 0 || !this._host) return
         this._windows[index].element.remove()
+        BlobStore.clearPrefix(`${this._windows[index].id}/`)
         this._windows.splice(index, 1)
         this._apply()
         const survivors = this._activeWindows()
@@ -535,6 +690,7 @@ const AppLibrary = {
         if (!win) return
         win.transparent = !win.transparent
         win.element.classList.toggle('app-window-transparent', win.transparent)
+        this._schedulePersist()
     },
 
     toggleGaps() {
@@ -625,6 +781,7 @@ const AppLibrary = {
     },
 
     _layout() {
+        this._schedulePersist()
         const host = this._host
         const windows = this._activeWindows()
         this._splits = []

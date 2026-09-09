@@ -46,13 +46,15 @@ class ImageViewer extends Component {
     /**
      * @param {Object} [config] - Launch config, for apps opening the
      *   viewer on something (the file explorer, eventually).
-     * @param {{src: string, label?: string}[]} [config.images]
+     * @param {{src: string, label?: string, file?: File}[]} [config.images]
      * @param {number} [config.index] - Which of them to show first.
+     * @param {AppSession} [config.session]
      */
     constructor(config) {
         super()
         this.launchImages = Array.isArray(config?.images) ? config.images : []
         this.launchIndex = Number.isInteger(config?.index) ? Number(config?.index) : 0
+        this.session = config?.session ?? null
     }
 
     /** @param {DocumentFragment} root */
@@ -74,11 +76,14 @@ class ImageViewer extends Component {
         /** @param {string} src */
         const basename = src => decodeURIComponent(src.split('/').pop() || src)
 
-        /** @type {{src: string, label: string}[]} */
-        let images = this.launchImages
-            .filter(item => item && typeof item.src === 'string' && item.src !== '')
-            .map(item => ({ src: item.src, label: item.label || basename(item.src) }))
-        let index = Math.max(0, Math.min(this.launchIndex, images.length - 1))
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            && Array.isArray(session.state.items) ? session.state : null
+        let nextSlot = 0
+
+        /** @type {{src: string, label: string, store: {slot?: number, src?: string} | null}[]} */
+        let images = []
+        let index = 0
         /** 'fit' recomputes on every render; 'manual' holds `zoom`. */
         let mode = 'fit'
         let zoom = 1
@@ -87,6 +92,62 @@ class ImageViewer extends Component {
         let panY = 0
         /** @type {string[]} Object URLs owned by this instance. */
         const objectUrls = []
+
+        /**
+         * @param {{src: string, file?: File}} item
+         * @returns {{slot?: number, src?: string} | null}
+         */
+        function adopt(item) {
+            if (!session) return null
+            if (item.file instanceof File) {
+                const slot = nextSlot++
+                session.putFile(String(slot), item.file)
+                return { slot }
+            }
+            return item.src.startsWith('blob:') ? null : { src: item.src }
+        }
+
+        function persist() {
+            if (!session) return
+            session.save({
+                items: images.filter(item => item.store)
+                    .map(item => ({ ...item.store, label: item.label })),
+                index,
+            })
+        }
+
+        function restore() {
+            const items = /** @type {*[]} */ (saved.items)
+            for (const item of items) {
+                if (Number.isInteger(item?.slot)) nextSlot = Math.max(nextSlot, item.slot + 1)
+            }
+            Promise.all(items.map(async (/** @type {*} */ item) => {
+                const label = typeof item?.label === 'string' ? item.label : ''
+                if (typeof item?.src === 'string') {
+                    return {
+                        src: item.src,
+                        label: label || basename(item.src),
+                        store: { src: item.src },
+                    }
+                }
+                if (!Number.isInteger(item?.slot) || !session) return null
+                const blob = await session.getFile(String(item.slot))
+                if (!blob) return null
+                const url = URL.createObjectURL(blob)
+                objectUrls.push(url)
+                return { src: url, label, store: { slot: item.slot } }
+            })).then(list => {
+                if (!viewer.isConnected) {
+                    for (const url of objectUrls) URL.revokeObjectURL(url)
+                    objectUrls.length = 0
+                    return
+                }
+                images = list.filter(item => item !== null)
+                index = Math.max(0, Math.min(Number(saved.index) || 0, images.length - 1))
+                if (images.length) image.src = images[index].src
+                render()
+            })
+        }
 
         // Rotated by a quarter turn, the image's box swaps sides.
         function fitScale() {
@@ -131,6 +192,7 @@ class ImageViewer extends Component {
             panY = 0
             image.src = images[index].src
             render()
+            persist()
         }
 
         /** @param {number} factor */
@@ -168,7 +230,7 @@ class ImageViewer extends Component {
             for (const file of added) {
                 const url = URL.createObjectURL(file)
                 objectUrls.push(url)
-                images.push({ src: url, label: file.name })
+                images.push({ src: url, label: file.name, store: adopt({ src: url, file }) })
             }
             index = first - 1
             show(1)
@@ -272,8 +334,21 @@ class ImageViewer extends Component {
         openButton.addEventListener('click', () => fileInput.click())
         overlayOpen.addEventListener('click', () => fileInput.click())
 
-        if (images.length) {
-            image.src = images[index].src
+        if (saved) {
+            restore()
+        } else {
+            images = this.launchImages
+                .filter(item => item && typeof item.src === 'string' && item.src !== '')
+                .map(item => ({
+                    src: item.src,
+                    label: item.label || basename(item.src),
+                    store: adopt(item),
+                }))
+            index = Math.max(0, Math.min(this.launchIndex, images.length - 1))
+            if (images.length) {
+                image.src = images[index].src
+                persist()
+            }
         }
         render()
     }

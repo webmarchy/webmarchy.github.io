@@ -32,13 +32,15 @@ class AudioPlayer extends Component {
 
     /**
      * @param {Object} [config]
-     * @param {{src: string, label?: string}[]} [config.tracks]
+     * @param {{src: string, label?: string, file?: File}[]} [config.tracks]
      * @param {number} [config.index]
+     * @param {AppSession} [config.session]
      */
     constructor(config) {
         super()
         this.launchTracks = Array.isArray(config?.tracks) ? config.tracks : []
         this.launchIndex = Number.isInteger(config?.index) ? Number(config?.index) : 0
+        this.session = config?.session ?? null
     }
 
     /** @param {DocumentFragment} root */
@@ -62,17 +64,87 @@ class AudioPlayer extends Component {
         /** @param {string} src */
         const basename = src => decodeURIComponent(src.split('/').pop() || src)
 
-        /** @type {{src: string, label: string, duration: number}[]} */
-        let tracks = this.launchTracks
-            .filter(item => item && typeof item.src === 'string' && item.src !== '')
-            .map(item => ({ src: item.src, label: item.label || basename(item.src), duration: NaN }))
-        let playing = tracks.length ? Math.max(0, Math.min(this.launchIndex, tracks.length - 1)) : -1
-        let cursor = Math.max(0, playing)
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            && Array.isArray(session.state.items) ? session.state : null
+        let nextSlot = 0
+
+        /** @type {{src: string, label: string, duration: number, store: {slot?: number, src?: string} | null}[]} */
+        let tracks = []
+        let playing = -1
+        let cursor = 0
         let shuffle = false
         /** @type {'off' | 'all' | 'one'} */
         let repeat = 'off'
+        let pendingTime = 0
+        let lastSavedTime = 0
         /** @type {string[]} */
         const objectUrls = []
+
+        /**
+         * @param {{src: string, file?: File}} item
+         * @returns {{slot?: number, src?: string} | null}
+         */
+        function adopt(item) {
+            if (!session) return null
+            if (item.file instanceof File) {
+                const slot = nextSlot++
+                session.putFile(String(slot), item.file)
+                return { slot }
+            }
+            return item.src.startsWith('blob:') ? null : { src: item.src }
+        }
+
+        function persist() {
+            if (!session) return
+            session.save({
+                items: tracks.filter(track => track.store)
+                    .map(track => ({ ...track.store, label: track.label })),
+                playing, cursor, shuffle, repeat,
+                time: audio.currentTime || 0,
+            })
+        }
+
+        function restore() {
+            const items = /** @type {*[]} */ (saved.items)
+            for (const item of items) {
+                if (Number.isInteger(item?.slot)) nextSlot = Math.max(nextSlot, item.slot + 1)
+            }
+            Promise.all(items.map(async (/** @type {*} */ item) => {
+                const label = typeof item?.label === 'string' ? item.label : ''
+                if (typeof item?.src === 'string') {
+                    return {
+                        src: item.src,
+                        label: label || basename(item.src),
+                        duration: NaN,
+                        store: { src: item.src },
+                    }
+                }
+                if (!Number.isInteger(item?.slot) || !session) return null
+                const blob = await session.getFile(String(item.slot))
+                if (!blob) return null
+                const url = URL.createObjectURL(blob)
+                objectUrls.push(url)
+                return { src: url, label, duration: NaN, store: { slot: item.slot } }
+            })).then(list => {
+                if (!player.isConnected) {
+                    for (const url of objectUrls) URL.revokeObjectURL(url)
+                    objectUrls.length = 0
+                    return
+                }
+                tracks = list.filter(item => item !== null)
+                playing = Number.isInteger(saved.playing)
+                    && saved.playing >= 0 && saved.playing < tracks.length ? saved.playing : -1
+                cursor = Math.max(0, Math.min(Number(saved.cursor) || 0, tracks.length - 1))
+                shuffle = Boolean(saved.shuffle)
+                repeat = saved.repeat === 'all' || saved.repeat === 'one' ? saved.repeat : 'off'
+                pendingTime = Number(saved.time) || 0
+                for (const track of tracks) probeDuration(track)
+                if (playing >= 0) audio.src = tracks[playing].src
+                renderList()
+                renderStatus()
+            })
+        }
 
         /** @param {number} seconds */
         function formatTime(seconds) {
@@ -164,6 +236,7 @@ class AudioPlayer extends Component {
             audio.play().catch(() => {})
             renderList()
             renderStatus()
+            persist()
         }
 
         function togglePlay() {
@@ -215,17 +288,21 @@ class AudioPlayer extends Component {
             for (const file of added) {
                 const url = URL.createObjectURL(file)
                 objectUrls.push(url)
-                const track = { src: url, label: file.name, duration: NaN }
+                const track = {
+                    src: url, label: file.name, duration: NaN,
+                    store: adopt({ src: url, file }),
+                }
                 tracks.push(track)
                 probeDuration(track)
             }
             if (playing < 0) play(first)
-            else { renderList(); renderStatus() }
+            else { renderList(); renderStatus(); persist() }
         }
 
         function disconnected() {
             if (player.isConnected) return false
             document.removeEventListener('keydown', onKey)
+            document.removeEventListener('omarchy:session-flush', onFlush)
             audio.pause()
             audio.removeAttribute('src')
             for (const url of objectUrls) URL.revokeObjectURL(url)
@@ -256,10 +333,11 @@ class AudioPlayer extends Component {
             else if (key === '+' || key === '=') volumeBy(0.05)
             else if (key === '-' || key === '_') volumeBy(-0.05)
             else if (key === 'm') audio.muted = !audio.muted
-            else if (key === 's') { shuffle = !shuffle; renderStatus() }
+            else if (key === 's') { shuffle = !shuffle; renderStatus(); persist() }
             else if (key === 'r') {
                 repeat = repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off'
                 renderStatus()
+                persist()
             }
             else if (key === 'o') fileInput.click()
             else if (key === 'q') document.dispatchEvent(new CustomEvent('omarchy:app-close'))
@@ -267,18 +345,34 @@ class AudioPlayer extends Component {
             event.preventDefault()
         }
 
-        document.addEventListener('keydown', onKey)
+        function onFlush() {
+            if (disconnected()) return
+            persist()
+        }
 
-        audio.addEventListener('timeupdate', renderStatus)
+        document.addEventListener('keydown', onKey)
+        document.addEventListener('omarchy:session-flush', onFlush)
+
+        audio.addEventListener('timeupdate', () => {
+            renderStatus()
+            if (session && Math.abs(audio.currentTime - lastSavedTime) > 5) {
+                lastSavedTime = audio.currentTime
+                persist()
+            }
+        })
         audio.addEventListener('loadedmetadata', () => {
             if (playing >= 0 && !Number.isFinite(tracks[playing].duration)) {
                 tracks[playing].duration = audio.duration
                 renderList()
             }
+            if (pendingTime) {
+                audio.currentTime = Math.min(pendingTime, audio.duration || pendingTime)
+                pendingTime = 0
+            }
             renderStatus()
         })
         audio.addEventListener('play', () => { renderList(); renderStatus() })
-        audio.addEventListener('pause', () => { renderList(); renderStatus() })
+        audio.addEventListener('pause', () => { renderList(); renderStatus(); persist() })
         audio.addEventListener('volumechange', renderStatus)
         audio.addEventListener('ended', () => {
             if (repeat === 'one') { play(playing); return }
@@ -308,10 +402,26 @@ class AudioPlayer extends Component {
         openButton.addEventListener('click', () => fileInput.click())
         overlayOpen.addEventListener('click', () => fileInput.click())
 
-        if (playing >= 0) {
-            for (const track of tracks) probeDuration(track)
-            audio.src = tracks[playing].src
-            audio.play().catch(() => {})
+        if (saved) {
+            restore()
+        } else {
+            tracks = this.launchTracks
+                .filter(item => item && typeof item.src === 'string' && item.src !== '')
+                .map(item => ({
+                    src: item.src,
+                    label: item.label || basename(item.src),
+                    duration: NaN,
+                    store: adopt(item),
+                }))
+            playing = tracks.length
+                ? Math.max(0, Math.min(this.launchIndex, tracks.length - 1)) : -1
+            cursor = Math.max(0, playing)
+            if (playing >= 0) {
+                for (const track of tracks) probeDuration(track)
+                audio.src = tracks[playing].src
+                audio.play().catch(() => {})
+                persist()
+            }
         }
         renderList()
         renderStatus()

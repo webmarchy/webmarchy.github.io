@@ -14,7 +14,7 @@ document.addEventListener('omarchy:factory-reset', () => {
         localStorage.removeItem('omarchy')
     } catch {
     }
-    location.reload()
+    BlobStore.clearAll().finally(() => location.reload())
 })
 
 const appRoot = document.querySelector('#app')

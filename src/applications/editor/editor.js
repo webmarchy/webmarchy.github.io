@@ -54,11 +54,13 @@ class Editor extends Component {
      *   editor on something (the file explorer, eventually).
      * @param {string} [config.name] - Buffer name to show and save as.
      * @param {string} [config.content] - Initial buffer content.
+     * @param {AppSession} [config.session]
      */
     constructor(config) {
         super()
         this.launchName = typeof config?.name === 'string' ? config.name : ''
         this.launchContent = typeof config?.content === 'string' ? config.content : ''
+        this.session = config?.session ?? null
     }
 
     /** @param {DocumentFragment} root */
@@ -75,12 +77,57 @@ class Editor extends Component {
         openGlyph.textContent = '\u{f0770}'
         saveGlyph.textContent = '\u{f0193}'
 
-        /** '' = an unnamed buffer — shown as Untitled. */
-        let name = this.launchName
-        let dirty = false
-        let lineCount = 0
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            ? session.state : null
 
-        buffer.value = this.launchContent
+        /** '' = an unnamed buffer — shown as Untitled. */
+        let name = saved && typeof saved.name === 'string' ? saved.name : this.launchName
+        let dirty = saved ? Boolean(saved.dirty) : false
+        let lineCount = 0
+        let bufferInBlob = Boolean(saved && saved.blob)
+        let persistTimer = 0
+        const PERSIST_INLINE_LIMIT = 200000
+
+        buffer.value = saved && typeof saved.content === 'string'
+            ? saved.content : this.launchContent
+
+        function persistNow() {
+            if (!session) return
+            clearTimeout(persistTimer)
+            persistTimer = 0
+            const content = buffer.value
+            const base = {
+                name, dirty,
+                caret: buffer.selectionStart,
+                scroll: buffer.scrollTop,
+            }
+            if (content.length > PERSIST_INLINE_LIMIT) {
+                bufferInBlob = true
+                session.putFile('buffer', new Blob([content], { type: 'text/plain' }))
+                session.save({ ...base, blob: true })
+            } else {
+                if (bufferInBlob) {
+                    bufferInBlob = false
+                    session.removeFile('buffer')
+                }
+                session.save({ ...base, content })
+            }
+        }
+
+        function persistSoon() {
+            if (!session || persistTimer) return
+            persistTimer = setTimeout(persistNow, 300)
+        }
+
+        function restoreView() {
+            const caret = Math.min(
+                Number.isInteger(saved?.caret) && saved.caret >= 0 ? saved.caret : 0,
+                buffer.value.length)
+            buffer.setSelectionRange(caret, caret)
+            buffer.scrollTop = Number(saved?.scroll) || 0
+            renderStatus()
+        }
 
         function renderStatus() {
             filenameLabel.textContent = `${name || 'Untitled'}${dirty ? ' [+]' : ''}`
@@ -123,6 +170,7 @@ class Editor extends Component {
             renderGutter()
             renderStatus()
             buffer.focus()
+            persistNow()
         }
 
         /** @param {FileList | null} files */
@@ -156,6 +204,7 @@ class Editor extends Component {
             }
             dirty = false
             renderStatus()
+            persistNow()
         }
 
         /** Cleans up everything the closed editor left on the document. */
@@ -163,7 +212,14 @@ class Editor extends Component {
             if (editor.isConnected) return false
             document.removeEventListener('keydown', onKey)
             document.removeEventListener('selectionchange', onSelect)
+            document.removeEventListener('omarchy:session-flush', onFlush)
+            clearTimeout(persistTimer)
             return true
+        }
+
+        function onFlush() {
+            if (disconnected()) return
+            if (persistTimer) persistNow()
         }
 
         function onSelect() {
@@ -193,11 +249,13 @@ class Editor extends Component {
 
         document.addEventListener('keydown', onKey)
         document.addEventListener('selectionchange', onSelect)
+        document.addEventListener('omarchy:session-flush', onFlush)
 
         buffer.addEventListener('input', () => {
             dirty = true
             renderGutter()
             renderStatus()
+            persistSoon()
         })
         buffer.addEventListener('scroll', () => {
             gutter.style.transform = `translateY(${-buffer.scrollTop}px)`
@@ -224,6 +282,23 @@ class Editor extends Component {
 
         renderGutter()
         renderStatus()
+        if (saved) {
+            if (typeof saved.content === 'string') {
+                restoreView()
+            } else if (saved.blob && session) {
+                session.getFile('buffer').then(blob => {
+                    if (!blob || !editor.isConnected) return
+                    blob.text().then(text => {
+                        if (!editor.isConnected) return
+                        buffer.value = text
+                        renderGutter()
+                        restoreView()
+                    })
+                })
+            }
+        } else if (session && (this.launchName || this.launchContent)) {
+            persistNow()
+        }
         // The window layer mounts synchronously from the launch event,
         // so the buffer is in the document and focusable by now.
         buffer.focus()

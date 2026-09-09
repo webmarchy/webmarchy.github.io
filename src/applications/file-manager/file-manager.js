@@ -57,7 +57,7 @@ const FILE_MANAGER_STATE = {
     /** @type {{name: string, glyph: string, open: () => void}[]} */
     recent: [],
     /** @type {'grid' | 'list'} */
-    view: 'grid',
+    view: Settings.get('fileManager.view') === 'list' ? 'list' : 'grid',
 }
 
 class FileManager extends Component {
@@ -498,13 +498,17 @@ class FileManager extends Component {
 
             /** @param {(f: File) => boolean} match */
             const siblings = async match => {
-                /** @type {{src: string, label: string}[]} */
+                /** @type {{src: string, label: string, file: File}[]} */
                 const group = []
                 let index = 0
                 for (const entry of entries) {
                     if (entry.node.kind !== 'file' || !entry.file || !match(entry.file)) continue
                     if (entry.node === node) index = group.length
-                    group.push({ src: URL.createObjectURL(entry.file), label: entry.node.name })
+                    group.push({
+                        src: URL.createObjectURL(entry.file),
+                        label: entry.node.name,
+                        file: entry.file,
+                    })
                 }
                 return { group, index }
             }
@@ -571,6 +575,7 @@ class FileManager extends Component {
             document.dispatchEvent(new CustomEvent('omarchy:app-close')))
         viewToggle.addEventListener('click', () => {
             state.view = state.view === 'grid' ? 'list' : 'grid'
+            Settings.set('fileManager.view', state.view)
             render()
         })
         searchToggle.addEventListener('click', () => {
@@ -647,6 +652,7 @@ class FileManager extends Component {
             }
             else if (key === 'v') {
                 state.view = state.view === 'grid' ? 'list' : 'grid'
+                Settings.set('fileManager.view', state.view)
                 render()
                 event.preventDefault()
                 return

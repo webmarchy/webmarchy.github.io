@@ -66,13 +66,15 @@ class MediaPlayer extends Component {
     /**
      * @param {Object} [config] - Launch config, for apps opening the
      *   player on something (the file explorer, eventually).
-     * @param {{src: string, label?: string}[]} [config.tracks]
+     * @param {{src: string, label?: string, file?: File}[]} [config.tracks]
      * @param {number} [config.index] - Which of them to play first.
+     * @param {AppSession} [config.session]
      */
     constructor(config) {
         super()
         this.launchTracks = Array.isArray(config?.tracks) ? config.tracks : []
         this.launchIndex = Number.isInteger(config?.index) ? Number(config?.index) : 0
+        this.session = config?.session ?? null
     }
 
     /** @param {DocumentFragment} root */
@@ -100,16 +102,81 @@ class MediaPlayer extends Component {
         /** @param {string} src */
         const basename = src => decodeURIComponent(src.split('/').pop() || src)
 
-        /** @type {{src: string, label: string}[]} */
-        let tracks = this.launchTracks
-            .filter(item => item && typeof item.src === 'string' && item.src !== '')
-            .map(item => ({ src: item.src, label: item.label || basename(item.src) }))
-        let index = Math.max(0, Math.min(this.launchIndex, tracks.length - 1))
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            && Array.isArray(session.state.items) ? session.state : null
+        let nextSlot = 0
+
+        /** @type {{src: string, label: string, store: {slot?: number, src?: string} | null}[]} */
+        let tracks = []
+        let index = 0
         let loop = false
+        let pendingTime = 0
+        let lastSavedTime = 0
         /** @type {string[]} Object URLs owned by this instance. */
         const objectUrls = []
         /** @type {number} Pending OSD fade timer, 0 when none. */
         let hideTimer = 0
+
+        /**
+         * @param {{src: string, file?: File}} item
+         * @returns {{slot?: number, src?: string} | null}
+         */
+        function adopt(item) {
+            if (!session) return null
+            if (item.file instanceof File) {
+                const slot = nextSlot++
+                session.putFile(String(slot), item.file)
+                return { slot }
+            }
+            return item.src.startsWith('blob:') ? null : { src: item.src }
+        }
+
+        function persist() {
+            if (!session) return
+            session.save({
+                items: tracks.filter(track => track.store)
+                    .map(track => ({ ...track.store, label: track.label })),
+                index, loop,
+                time: video.currentTime || 0,
+            })
+        }
+
+        function restore() {
+            const items = /** @type {*[]} */ (saved.items)
+            for (const item of items) {
+                if (Number.isInteger(item?.slot)) nextSlot = Math.max(nextSlot, item.slot + 1)
+            }
+            Promise.all(items.map(async (/** @type {*} */ item) => {
+                const label = typeof item?.label === 'string' ? item.label : ''
+                if (typeof item?.src === 'string') {
+                    return {
+                        src: item.src,
+                        label: label || basename(item.src),
+                        store: { src: item.src },
+                    }
+                }
+                if (!Number.isInteger(item?.slot) || !session) return null
+                const blob = await session.getFile(String(item.slot))
+                if (!blob) return null
+                const url = URL.createObjectURL(blob)
+                objectUrls.push(url)
+                return { src: url, label, store: { slot: item.slot } }
+            })).then(list => {
+                if (!player.isConnected) {
+                    for (const url of objectUrls) URL.revokeObjectURL(url)
+                    objectUrls.length = 0
+                    return
+                }
+                tracks = list.filter(item => item !== null)
+                index = Math.max(0, Math.min(Number(saved.index) || 0, tracks.length - 1))
+                loop = Boolean(saved.loop)
+                video.loop = loop
+                pendingTime = Number(saved.time) || 0
+                if (tracks.length) video.src = tracks[index].src
+                renderMeta()
+            })
+        }
 
         /** @param {number} seconds */
         function formatTime(seconds) {
@@ -162,6 +229,7 @@ class MediaPlayer extends Component {
             video.play().catch(() => {})
             renderMeta()
             wakeOsd()
+            persist()
         }
 
         function togglePlay() {
@@ -202,7 +270,7 @@ class MediaPlayer extends Component {
             for (const file of added) {
                 const url = URL.createObjectURL(file)
                 objectUrls.push(url)
-                tracks.push({ src: url, label: file.name })
+                tracks.push({ src: url, label: file.name, store: adopt({ src: url, file }) })
             }
             index = first - 1
             show(1)
@@ -212,6 +280,7 @@ class MediaPlayer extends Component {
         function disconnected() {
             if (player.isConnected) return false
             document.removeEventListener('keydown', onKey)
+            document.removeEventListener('omarchy:session-flush', onFlush)
             clearTimeout(hideTimer)
             video.pause()
             video.removeAttribute('src')
@@ -245,7 +314,7 @@ class MediaPlayer extends Component {
             else if (key === ']') speedBy(1.1)
             else if (key === '[') speedBy(1 / 1.1)
             else if (key === 'Backspace') { video.playbackRate = 1; renderMeta(); wakeOsd() }
-            else if (key === 'l') { loop = !loop; video.loop = loop; renderMeta(); wakeOsd() }
+            else if (key === 'l') { loop = !loop; video.loop = loop; renderMeta(); wakeOsd(); persist() }
             else if (key === 'i') {
                 osd.dataset.off = osd.dataset.off === 'true' ? 'false' : 'true'
                 renderMeta()
@@ -256,18 +325,34 @@ class MediaPlayer extends Component {
             event.preventDefault()
         }
 
+        function onFlush() {
+            if (disconnected()) return
+            persist()
+        }
+
         document.addEventListener('keydown', onKey)
+        document.addEventListener('omarchy:session-flush', onFlush)
 
         // ---- Video element state drives the OSD.
         video.addEventListener('loadedmetadata', () => {
             // No video frames → an audio track: give it a themed face.
             audioFace.hidden = video.videoWidth !== 0
             audioTitle.textContent = tracks[index] ? tracks[index].label : ''
+            if (pendingTime) {
+                video.currentTime = Math.min(pendingTime, video.duration || pendingTime)
+                pendingTime = 0
+            }
             renderMeta()
         })
-        video.addEventListener('timeupdate', renderMeta)
+        video.addEventListener('timeupdate', () => {
+            renderMeta()
+            if (session && Math.abs(video.currentTime - lastSavedTime) > 5) {
+                lastSavedTime = video.currentTime
+                persist()
+            }
+        })
         video.addEventListener('play', () => { renderMeta(); wakeOsd() })
-        video.addEventListener('pause', () => { renderMeta(); wakeOsd() })
+        video.addEventListener('pause', () => { renderMeta(); wakeOsd(); persist() })
         video.addEventListener('volumechange', renderMeta)
         video.addEventListener('ended', () => {
             if (!loop && tracks.length > 1) show(1)
@@ -307,9 +392,22 @@ class MediaPlayer extends Component {
             fileInput.click()
         })
 
-        if (tracks.length) {
-            video.src = tracks[index].src
-            video.play().catch(() => {})
+        if (saved) {
+            restore()
+        } else {
+            tracks = this.launchTracks
+                .filter(item => item && typeof item.src === 'string' && item.src !== '')
+                .map(item => ({
+                    src: item.src,
+                    label: item.label || basename(item.src),
+                    store: adopt(item),
+                }))
+            index = Math.max(0, Math.min(this.launchIndex, tracks.length - 1))
+            if (tracks.length) {
+                video.src = tracks[index].src
+                video.play().catch(() => {})
+                persist()
+            }
         }
         renderMeta()
     }

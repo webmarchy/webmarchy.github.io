@@ -34,6 +34,15 @@ class Calculator extends Component {
         </section>
     `
 
+    /**
+     * @param {Object} [config]
+     * @param {AppSession} [config.session]
+     */
+    constructor(config) {
+        super()
+        this.session = config?.session ?? null
+    }
+
     /** @param {DocumentFragment} root */
     script(root) {
         const calculator = $(root, '[data-ref="calculator"]')
@@ -41,16 +50,31 @@ class Calculator extends Component {
         const resultLabel = $(root, '[data-ref="result"]')
         const keypad = $(root, '[data-ref="keypad"]')
 
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            && session.state.state !== 'error' ? session.state : null
+
+        /** @param {*} list @returns {(number | string)[]} */
+        const savedTokens = list => Array.isArray(list)
+            ? list.filter((/** @type {*} */ t) =>
+                typeof t === 'number' || typeof t === 'string')
+            : []
+
         /**
          * @type {(number | string)[]}
          */
-        let tokens = []
-        let entry = ''
+        let tokens = saved ? savedTokens(saved.tokens) : []
+        let entry = saved && typeof saved.entry === 'string' ? saved.entry : ''
         /** @type {'input' | 'result' | 'error'} */
-        let state = 'input'
-        let result = 0
+        let state = saved && saved.state === 'result' ? 'result' : 'input'
+        let result = saved && typeof saved.result === 'number' ? saved.result : 0
         /** @type {(number | string)[]} */
-        let lastExpression = []
+        let lastExpression = saved ? savedTokens(saved.lastExpression) : []
+
+        function persist() {
+            if (!session) return
+            session.save({ tokens, entry, state, result, lastExpression })
+        }
 
         const isOp = (/** @param {number | string} t */ t) => typeof t === 'string'
 
@@ -209,6 +233,7 @@ class Calculator extends Component {
             else if (key === 'backspace') backspace()
             else return
             render()
+            persist()
         }
 
         keypad.addEventListener('click', event => {

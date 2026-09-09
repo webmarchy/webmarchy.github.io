@@ -23,6 +23,15 @@
  * @extends {Component}
  */
 class Terminal extends Component {
+    /**
+     * @param {Object} [config]
+     * @param {AppSession} [config.session]
+     */
+    constructor(config) {
+        super()
+        this.session = config?.session ?? null
+    }
+
     static template = `
         <section class="terminal" data-ref="terminal">
             <div class="terminal-scroll" data-ref="scroll">
@@ -46,10 +55,21 @@ class Terminal extends Component {
         const after = $(root, '[data-ref="after"]')
         const input = /** @type {HTMLInputElement} */ ($(root, '[data-ref="input"]'))
 
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            ? session.state : null
+
         /** Last command's fate — every command fails here, honestly. */
-        let failed = false
+        let failed = saved ? Boolean(saved.failed) : false
         /** @type {string[]} */
-        const history = []
+        const history = saved && Array.isArray(saved.history)
+            ? saved.history.filter((/** @type {*} */ line) => typeof line === 'string')
+            : []
+
+        function persist() {
+            if (!session) return
+            session.save({ history: history.slice(-100), failed })
+        }
         /** @type {number | null} Position while walking history. */
         let historyIndex = null
         /** The line that was being typed before walking into history. */
@@ -138,6 +158,7 @@ class Terminal extends Component {
             renderPrompt()
             renderInput()
             scrollToBottom()
+            persist()
         }
 
         /** @param {number} delta */
@@ -209,6 +230,7 @@ class Terminal extends Component {
                 renderPrompt()
                 renderInput()
                 scrollToBottom()
+                persist()
             } else if (event.ctrlKey && event.key === 'l') {
                 event.preventDefault()
                 lines.textContent = ''

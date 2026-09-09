@@ -32,13 +32,15 @@ class DocumentViewer extends Component {
 
     /**
      * @param {Object} [config]
-     * @param {{src: string, label?: string}[]} [config.documents]
+     * @param {{src: string, label?: string, file?: File}[]} [config.documents]
      * @param {number} [config.index]
+     * @param {AppSession} [config.session]
      */
     constructor(config) {
         super()
         this.launchDocuments = Array.isArray(config?.documents) ? config.documents : []
         this.launchIndex = Number.isInteger(config?.index) ? Number(config?.index) : 0
+        this.session = config?.session ?? null
     }
 
     /** @param {DocumentFragment} root */
@@ -60,14 +62,74 @@ class DocumentViewer extends Component {
         /** @param {string} src */
         const basename = src => decodeURIComponent(src.split('/').pop() || src)
 
-        /** @type {{src: string, label: string}[]} */
-        let documents = this.launchDocuments
-            .filter(item => item && typeof item.src === 'string' && item.src !== '')
-            .map(item => ({ src: item.src, label: item.label || basename(item.src) }))
-        let index = Math.max(0, Math.min(this.launchIndex, documents.length - 1))
+        const session = this.session
+        const saved = session && typeof session.state === 'object' && session.state !== null
+            && Array.isArray(session.state.items) ? session.state : null
+        let nextSlot = 0
+
+        /** @type {{src: string, label: string, store: {slot?: number, src?: string} | null}[]} */
+        let documents = []
+        let index = 0
         let toolbar = false
         /** @type {string[]} */
         const objectUrls = []
+
+        /**
+         * @param {{src: string, file?: File}} item
+         * @returns {{slot?: number, src?: string} | null}
+         */
+        function adopt(item) {
+            if (!session) return null
+            if (item.file instanceof File) {
+                const slot = nextSlot++
+                session.putFile(String(slot), item.file)
+                return { slot }
+            }
+            return item.src.startsWith('blob:') ? null : { src: item.src }
+        }
+
+        function persist() {
+            if (!session) return
+            session.save({
+                items: documents.filter(item => item.store)
+                    .map(item => ({ ...item.store, label: item.label })),
+                index, toolbar,
+            })
+        }
+
+        function restore() {
+            const items = /** @type {*[]} */ (saved.items)
+            for (const item of items) {
+                if (Number.isInteger(item?.slot)) nextSlot = Math.max(nextSlot, item.slot + 1)
+            }
+            Promise.all(items.map(async (/** @type {*} */ item) => {
+                const label = typeof item?.label === 'string' ? item.label : ''
+                if (typeof item?.src === 'string') {
+                    return {
+                        src: item.src,
+                        label: label || basename(item.src),
+                        store: { src: item.src },
+                    }
+                }
+                if (!Number.isInteger(item?.slot) || !session) return null
+                const blob = await session.getFile(String(item.slot))
+                if (!blob) return null
+                const url = URL.createObjectURL(blob)
+                objectUrls.push(url)
+                return { src: url, label, store: { slot: item.slot } }
+            })).then(list => {
+                if (!viewer.isConnected) {
+                    for (const url of objectUrls) URL.revokeObjectURL(url)
+                    objectUrls.length = 0
+                    return
+                }
+                documents = list.filter(item => item !== null)
+                index = Math.max(0, Math.min(Number(saved.index) || 0, documents.length - 1))
+                toolbar = Boolean(saved.toolbar)
+                load()
+                render()
+            })
+        }
 
         function render() {
             const hasDocuments = documents.length > 0
@@ -93,6 +155,7 @@ class DocumentViewer extends Component {
             index = (index + delta + documents.length) % documents.length
             load()
             render()
+            persist()
         }
 
         /** @param {FileList | null} files */
@@ -104,7 +167,7 @@ class DocumentViewer extends Component {
             for (const file of added) {
                 const url = URL.createObjectURL(file)
                 objectUrls.push(url)
-                documents.push({ src: url, label: file.name })
+                documents.push({ src: url, label: file.name, store: adopt({ src: url, file }) })
             }
             index = first - 1
             show(1)
@@ -135,6 +198,7 @@ class DocumentViewer extends Component {
             else if (key === 't') {
                 toolbar = !toolbar
                 load()
+                persist()
             }
             else if (key === 'i') {
                 overlay.dataset.off = overlay.dataset.off === 'true' ? 'false' : 'true'
@@ -160,6 +224,19 @@ class DocumentViewer extends Component {
         openButton.addEventListener('click', () => fileInput.click())
         overlayOpen.addEventListener('click', () => fileInput.click())
 
+        if (saved) {
+            restore()
+        } else {
+            documents = this.launchDocuments
+                .filter(item => item && typeof item.src === 'string' && item.src !== '')
+                .map(item => ({
+                    src: item.src,
+                    label: item.label || basename(item.src),
+                    store: adopt(item),
+                }))
+            index = Math.max(0, Math.min(this.launchIndex, documents.length - 1))
+            if (documents.length) persist()
+        }
         load()
         render()
     }
