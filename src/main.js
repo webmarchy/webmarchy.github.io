@@ -1,3 +1,7 @@
+document.addEventListener('contextmenu', event => {
+    event.preventDefault()
+})
+
 const savedTheme = Settings.get('theme.current', THEME_DEFAULT)
 Theme.apply(Theme.names().includes(savedTheme) ? savedTheme : THEME_DEFAULT)
 

@@ -65,6 +65,7 @@ class Keybindings extends Component {
             { keys: 'ALT + SHIFT + BACKSPACE', label: 'Toggle window gaps' },
             { keys: 'ALT + LEFT MOUSE', label: 'Drag floating window' },
             { keys: 'ALT + RIGHT MOUSE', label: 'Resize floating window' },
+            { keys: 'ALT + RIGHT MOUSE', label: 'Drag a gap to resize tiles' },
             { keys: 'ALT + RETURN', label: 'Launch the terminal', action: 'omarchy:app-launch terminal' },
             { keys: `${mod} + CTRL + E`, label: 'Emojis', action: 'omarchy:emojis-toggle' },
             { keys: `${mod} + CTRL + V`, label: 'Clipboard manager', action: 'omarchy:clipboard-toggle' },

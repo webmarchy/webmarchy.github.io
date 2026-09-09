@@ -23,6 +23,16 @@
  * @property {{x: number, y: number} | null} floatingPos
  */
 
+/**
+ * @typedef {Object} SplitEdge
+ * @property {AppWindow} win
+ * @property {'h' | 'v'} axis
+ * @property {number} origin
+ * @property {number} extent
+ * @property {number} acrossStart
+ * @property {number} acrossEnd
+ */
+
 const APP_LIBRARY_IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform)
 
 /**
@@ -41,6 +51,9 @@ const AppLibrary = {
     _host: null,
     /** @type {AppWindow[]} */
     _windows: [],
+    /** @type {SplitEdge[]} */
+    _splits: [],
+    _sequence: 0,
     WORKSPACES: 5,
     _activeWorkspace: 1,
     _formerWorkspace: 1,
@@ -163,13 +176,25 @@ const AppLibrary = {
         if (!host || !(target instanceof Element)) return
         const element = target.closest('.app-window')
         const win = this._windows.find(w => w.element === element)
-        if (!win || !win.floating || win.fullscreen) return
+        if (win?.fullscreen) return
+        if (!win || !win.floating) {
+            if (event.button === 2) this._dragSplit(event)
+            return
+        }
         event.preventDefault()
         const mode = event.button === 2 ? 'resize' : 'move'
         const hostRect = host.getBoundingClientRect()
         const startRect = win.element.getBoundingClientRect()
         const startX = event.clientX
         const startY = event.clientY
+        const edgeX = Math.abs(startX - startRect.right) <= 16 ? 1
+            : Math.abs(startX - startRect.left) <= 16 ? -1 : 0
+        const edgeY = Math.abs(startY - startRect.bottom) <= 16 ? 1
+            : Math.abs(startY - startRect.top) <= 16 ? -1 : 0
+        const startSize = {
+            width: startRect.width / hostRect.width * 100,
+            height: startRect.height / hostRect.height * 100,
+        }
         const startPos = win.floatingPos ?? {
             x: (startRect.left + startRect.width / 2 - hostRect.left) / hostRect.width * 100,
             y: (startRect.top + startRect.height / 2 - hostRect.top) / hostRect.height * 100,
@@ -183,6 +208,22 @@ const AppLibrary = {
                     x: Math.min(97, Math.max(3, startPos.x + dx / hostRect.width * 100)),
                     y: Math.min(97, Math.max(3, startPos.y + dy / hostRect.height * 100)),
                 }
+            } else if (edgeX || edgeY) {
+                const width = edgeX
+                    ? Math.min(100, Math.max(15,
+                        startSize.width + dx * edgeX / hostRect.width * 100))
+                    : startSize.width
+                const height = edgeY
+                    ? Math.min(100, Math.max(15,
+                        startSize.height + dy * edgeY / hostRect.height * 100))
+                    : startSize.height
+                win.floatingSize = { width: `${width}%`, height: `${height}%` }
+                win.floatingPos = {
+                    x: Math.min(97, Math.max(3,
+                        startPos.x + (width - startSize.width) / 2 * edgeX)),
+                    y: Math.min(97, Math.max(3,
+                        startPos.y + (height - startSize.height) / 2 * edgeY)),
+                }
             } else {
                 win.floatingSize = {
                     width: `${Math.min(100, Math.max(15,
@@ -191,6 +232,51 @@ const AppLibrary = {
                         (startRect.height + dy * 2) / hostRect.height * 100))}%`,
                 }
             }
+            this._layout()
+        }
+        const onUp = () => {
+            window.removeEventListener('pointermove', onMove)
+            window.removeEventListener('pointerup', onUp)
+        }
+        window.addEventListener('pointermove', onMove)
+        window.addEventListener('pointerup', onUp)
+    },
+
+    /**
+     * @param {PointerEvent} event
+     */
+    _dragSplit(event) {
+        const host = this._host
+        if (!host) return
+        const hostRect = host.getBoundingClientRect()
+        const px = (event.clientX - hostRect.left) / hostRect.width
+        const py = (event.clientY - hostRect.top) / hostRect.height
+        /** @type {SplitEdge | null} */
+        let best = null
+        let bestDistance = 16
+        for (const split of this._splits) {
+            const ratio = Math.min(0.85, Math.max(0.15, split.win.ratio))
+            const boundary = split.origin + split.extent * (1 - ratio)
+            const along = split.axis === 'h' ? px : py
+            const across = split.axis === 'h' ? py : px
+            if (across < split.acrossStart || across > split.acrossEnd) continue
+            const distance = Math.abs(along - boundary)
+                * (split.axis === 'h' ? hostRect.width : hostRect.height)
+            if (distance < bestDistance) {
+                bestDistance = distance
+                best = split
+            }
+        }
+        if (!best) return
+        event.preventDefault()
+        const split = best
+        /** @param {PointerEvent} move */
+        const onMove = move => {
+            const along = split.axis === 'h'
+                ? (move.clientX - hostRect.left) / hostRect.width
+                : (move.clientY - hostRect.top) / hostRect.height
+            split.win.ratio = Math.min(0.85, Math.max(0.15,
+                (split.origin + split.extent - along) / split.extent))
             this._layout()
         }
         const onUp = () => {
@@ -215,22 +301,14 @@ const AppLibrary = {
     launch(id, config) {
         const entry = this._entries.get(id)
         if (!entry || !this._host) return
-        const existing = this._windows.find(win => win.id === id)
-        if (existing) {
-            if (config !== undefined) {
-                existing.element.textContent = ''
-                mount(existing.element, new entry.component(config))
-            }
-            this.focus(id)
-            return
-        }
+        const windowId = `${id}#${++this._sequence}`
         const element = document.createElement('div')
         element.className = 'app-window'
-        element.addEventListener('pointerdown', () => this.focus(id), { capture: true })
+        element.addEventListener('pointerdown', () => this.focus(windowId), { capture: true })
         mount(element, new entry.component(config))
         this._host.appendChild(element)
         this._windows.push({
-            id, element, workspace: this._activeWorkspace, fullscreen: false,
+            id: windowId, element, workspace: this._activeWorkspace, fullscreen: false,
             floating: Boolean(entry.floating),
             sticky: false, scratch: false, transparent: false,
             splitAxis: null, effectiveAxis: 'h', ratio: 0.5,
@@ -239,7 +317,7 @@ const AppLibrary = {
         })
         this._host.hidden = false
         this._apply()
-        this.focus(id)
+        this.focus(windowId)
         this._notify()
     },
 
@@ -549,6 +627,7 @@ const AppLibrary = {
     _layout() {
         const host = this._host
         const windows = this._activeWindows()
+        this._splits = []
         if (!host || !windows.length) return
         const gap = this._gaps ? 2.5 : 0
 
@@ -566,6 +645,13 @@ const AppLibrary = {
                 ?? (target.w * aspect >= target.h ? 'h' : 'v')
             const ratio = Math.min(0.85, Math.max(0.15, tiled[i].ratio))
             tiled[i].effectiveAxis = axis
+            this._splits.push({
+                win: tiled[i], axis,
+                origin: axis === 'h' ? target.x : target.y,
+                extent: axis === 'h' ? target.w : target.h,
+                acrossStart: axis === 'h' ? target.y : target.x,
+                acrossEnd: axis === 'h' ? target.y + target.h : target.x + target.w,
+            })
             if (axis === 'h') {
                 const width = target.w * ratio
                 target.w -= width
